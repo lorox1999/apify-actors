@@ -38,8 +38,10 @@ describe('change tracking and status checks', () => {
             maxUrlsPerSite: 100,
         };
         const first = await runInput(input);
-        expect(first.items.filter((item) => item.changeType === 'added')).toHaveLength(10);
-        expect(first.charges['site-compared']).toBe(1);
+        expect(first.items.filter((item) => item.recordType === 'url')).toHaveLength(10);
+        expect(first.items.filter((item) => item.changeType === 'added')).toHaveLength(0);
+        expect(first.summary[0]?.addedCount).toBeNull();
+        expect(first.charges['site-compared'] ?? 0).toBe(0);
 
         mode = 'second';
         const second = await runInput(input, first.storageDir);
@@ -48,6 +50,7 @@ describe('change tracking and status checks', () => {
         const unchanged = second.items.filter((item) => item.changeType === 'unchanged');
         expect(added).toHaveLength(5);
         expect(removed).toHaveLength(3);
+        expect(removed.every((item) => item.source === 'sitemap')).toBe(true);
         expect(unchanged).toHaveLength(7);
         expect(second.charges['site-compared']).toBe(1);
         expect(second.charges['url-extracted']).toBe(15);
@@ -79,6 +82,8 @@ describe('change tracking and status checks', () => {
         };
         const first = await runInput(input);
         expect(first.items.filter((item) => item.recordType === 'url')).toHaveLength(2);
+        expect(first.charges['site-compared'] ?? 0).toBe(0);
+        expect(first.items.filter((item) => item.recordType === 'url').every((item) => item.changeType == null)).toBe(true);
         mode = 'second';
         const second = await runInput(input, first.storageDir);
         const rows = second.items.filter((item) => item.recordType === 'url');

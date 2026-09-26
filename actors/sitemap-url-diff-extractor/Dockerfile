@@ -2,8 +2,9 @@
 FROM apify/actor-node:22 AS builder
 
 USER root
-RUN npm install -g pnpm@10.33.3
-USER myuser
+# The base image already ships a pnpm shim (EEXIST without --force), and /usr/src/app
+# is not writable by myuser, so the throwaway builder stage runs as root.
+RUN npm install -g --force pnpm@10.33.3
 WORKDIR /usr/src/app
 
 COPY --chown=myuser:myuser package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
@@ -14,6 +15,8 @@ COPY --chown=myuser:myuser actors/bulk-core-web-vitals-checker/package.json acto
 
 RUN pnpm install --frozen-lockfile --filter sitemap-url-diff-extractor... \
     && pnpm --filter sitemap-url-diff-extractor rebuild esbuild
+# @apify-actors/common resolves to dist/index.js (package.json exports), so build it first.
+RUN pnpm --filter @apify-actors/common build
 RUN pnpm --filter sitemap-url-diff-extractor exec esbuild src/main.ts \
     --bundle \
     --platform=node \
@@ -29,6 +32,7 @@ USER root
 WORKDIR /usr/src/app
 COPY --from=builder --chown=myuser:myuser /usr/src/app/actors/sitemap-url-diff-extractor/dist ./dist
 RUN npm install --omit=dev --no-package-lock apify@3.7.2 sax@1.6.1 robots-parser@3.0.1 \
+    && npm pkg set type=module \
     && chown -R myuser:myuser /usr/src/app
 USER myuser
 CMD ["node", "dist/main.js"]

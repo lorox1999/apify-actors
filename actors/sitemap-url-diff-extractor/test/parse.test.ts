@@ -2,7 +2,9 @@ import { gzipSync } from 'node:zlib';
 
 import { describe, expect, it } from 'vitest';
 
+import { applyDiff, parseSnapshotEntries } from '../src/compare.js';
 import { keepUrl, parseDateBoundary, compileFilters } from '../src/filter.js';
+import type { PageRecord } from '../src/types.js';
 import { extractLlmsLinks } from '../src/llms.js';
 import { inflateIfNeeded, parseSitemapBuffer } from '../src/parseSitemap.js';
 import { requestGapMs } from '../src/hostLock.js';
@@ -69,6 +71,38 @@ describe('parser and filters', () => {
     it('counts markdown links in llms.txt', () => {
         const extracted = extractLlmsLinks('# t\n[A](https://example.com/a)\n<https://example.com/b>\n');
         expect(extracted.count).toBe(2);
+    });
+
+    it('keeps a removed URL source from the snapshot and leaves unknown sources empty', () => {
+        const parsed = parseSnapshotEntries([
+            ['https://example.com/old-sitemap', '2026-01-01T00:00:00.000Z', 'sitemap'],
+            ['https://example.com/old-llms', '2026-01-02T00:00:00.000Z', 'llms.txt'],
+            ['https://example.com/legacy', '2026-01-03T00:00:00.000Z'],
+        ]);
+        expect(parsed).not.toBeNull();
+        const page: PageRecord = {
+            url: 'https://example.com/kept',
+            norm: 'https://example.com/kept',
+            source: 'sitemap',
+            sourceSitemap: null,
+            lastmod: null,
+            changefreq: null,
+            priority: null,
+            sitemapKind: 'standard',
+            imageCount: 0,
+            videoCount: 0,
+            hreflangCount: 0,
+            changeType: null,
+            firstSeenAt: null,
+            httpStatus: null,
+            finalUrl: null,
+        };
+        const { removed } = applyDiff([page], parsed, '2026-09-26T00:00:00.000Z');
+        expect(removed.map((row) => [row.url, row.source])).toEqual([
+            ['https://example.com/old-sitemap', 'sitemap'],
+            ['https://example.com/old-llms', 'llms.txt'],
+            ['https://example.com/legacy', null],
+        ]);
     });
 
     it('defaults the per-host gap to 200ms', () => {

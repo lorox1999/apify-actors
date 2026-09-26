@@ -1,8 +1,9 @@
 FROM apify/actor-node-puppeteer-chrome:22 AS builder
 
 USER root
-RUN npm install -g pnpm@10.33.3
-USER myuser
+# The base image already ships a pnpm shim (EEXIST without --force), and /usr/src/app
+# is not writable by myuser, so the throwaway builder stage runs as root.
+RUN npm install -g --force pnpm@10.33.3
 WORKDIR /usr/src/app
 
 COPY --chown=myuser:myuser package.json pnpm-workspace.yaml pnpm-lock.yaml tsconfig.base.json ./
@@ -19,6 +20,7 @@ USER root
 WORKDIR /usr/src/app
 COPY --from=builder --chown=myuser:myuser /usr/src/app/actors/bulk-core-web-vitals-checker/dist ./dist
 RUN npm install --omit=dev --no-package-lock apify@3.7.2 \
+    && npm pkg set type=module \
     && chown -R myuser:myuser /usr/src/app
 USER myuser
 CMD ["node", "dist/main.js"]

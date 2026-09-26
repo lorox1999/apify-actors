@@ -434,6 +434,23 @@ describe('sitemap extractor acceptance', () => {
         })).rejects.toThrow(/regular expression/i);
     });
 
+    it('records one DNS_ERROR row for an unresolvable domain', async () => {
+        const host = 'sitemap-url-diff-missing.invalid';
+        const result = await runInput({
+            startUrls: [`https://${host}`],
+            checkLlmsTxt: true,
+            respectRobotsTxt: true,
+            discoverFromRobotsTxt: true,
+            probeCommonPaths: true,
+        });
+        const errors = result.items.filter((item) => item.errorCode === 'DNS_ERROR');
+        expect(errors).toHaveLength(1);
+        expect(errors[0]?.url).toBe(host);
+        expect(errors[0]?.recordType).toBe('error');
+        expect(result.charges['url-extracted'] ?? 0).toBe(0);
+        expect(result.summary[0]?.warnings ?? []).not.toContain('CHARGE_LIMIT_REACHED');
+    });
+
     it('rejects a private host unless the test override is set', async () => {
         const previous = process.env.ALLOW_PRIVATE_HOSTS_FOR_TESTS;
         process.env.ALLOW_PRIVATE_HOSTS_FOR_TESTS = '0';

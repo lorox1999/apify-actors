@@ -16,11 +16,11 @@ For a domain or homepage, the Actor reads `Sitemap:` lines from robots.txt. If n
 
 ### Sitemap monitoring: added and removed URLs
 
-Turn on change tracking to compare this run with the previous one. Each current URL is marked `added` or `unchanged`. URLs that disappeared are extra rows with `changeType` `removed`.
+Turn on change tracking to compare this run with the previous one. The first run only stores a baseline snapshot and does not charge `site-compared`. Each later run marks current URLs `added` or `unchanged`. URLs that disappeared are extra rows with `changeType` `removed` and the `source` saved in the snapshot (`sitemap` or `llms.txt`). If that snapshot did not record a source, `source` is empty.
 
 Snapshots live in a named key-value store in your own Apify account (default name `sitemap-url-diff-state`). The store key is a hash of the site plus your filter settings. Nobody else can read that store. You can delete it at any time. Storage charges for that store, if any, are billed to your account.
 
-`outputMode` `changesOnly` writes only added and removed URL rows. That mode still has to download the sitemaps, so it is billed with one `site-compared` event per site plus a `url-extracted` event for each row that is written.
+`outputMode` `changesOnly` writes only added and removed URL rows once a baseline exists. The first compare run stores the snapshot and is not charged `site-compared`. A later run that compares against that snapshot is billed one `site-compared` event per site, plus a `url-extracted` event for each row that is written.
 
 ### llms.txt checker
 
@@ -144,7 +144,7 @@ Pricing is pay per event. You are not billed for filtered URLs, duplicate URLs, 
 | --- | --- | --- | --- | --- | --- |
 | `url-extracted` | One URL row is written, including a `removed` row | $0.0005 | $0.0004 | $0.00035 | $0.0003 |
 | `status-checked` | One URL returned an HTTP status code | $0.0004 | $0.0003 | $0.00025 | $0.0002 |
-| `site-compared` | Change tracking or changes-only mode ran for one site | $0.002 | $0.0018 | $0.0016 | $0.0014 |
+| `site-compared` | One site was compared with a stored snapshot from an earlier run | $0.002 | $0.0018 | $0.0016 | $0.0014 |
 | Actor start | Platform start fee, once per run at or under 1 GB | $0.00005 | $0.00005 | $0.00005 | $0.00005 |
 
 Per 1,000 URL rows that is $0.50 (FREE), $0.40 (BRONZE), $0.35 (SILVER), or $0.30 (GOLD). Optional status checks are $0.40 / $0.30 / $0.25 / $0.20 per 1,000 URLs. `site-compared` is $2.00 / $1.80 / $1.60 / $1.40 per 1,000 sites.
@@ -191,7 +191,7 @@ The error code is `SITEMAP_HTTP_403`. The Actor records the status and stops for
 
 ### Can I call it from the API / schedule it daily?
 
-Yes. Pass the same JSON input the console uses. A daily schedule plus change tracking is the sitemap monitoring setup. `changesOnly` keeps each day's dataset to added and removed URLs and charges one `site-compared` event per site.
+Yes. Pass the same JSON input the console uses. A daily schedule plus change tracking is the sitemap monitoring setup. `changesOnly` keeps each day's dataset to added and removed URLs. The first run only saves the baseline. Each later run charges one `site-compared` event per site that is compared with that snapshot.
 
 ## Limitations
 
@@ -200,7 +200,7 @@ Yes. Pass the same JSON input the console uses. A daily schedule plus change tra
 - HTTP 403 and other access blocks are reported and not bypassed.
 - A single sitemap over 100 MB uncompressed, or a gzip compression ratio over 100, is rejected for that file.
 - Change tracking is skipped above 500,000 URLs (`STATE_TOO_LARGE`).
-- Very large snapshots use memory. 512 MB is enough for a small site without change tracking; 1 GB is the default.
+- Very large snapshots use memory. The default is 512 MB. 256 MB is the minimum and is enough for a small site without change tracking.
 - Requests to the same host are serialized with at least 200 ms between sitemap downloads. One site that fails does not fail the whole run.
 - Private hosts and localhost are rejected. There is no proxy and no browser.
 

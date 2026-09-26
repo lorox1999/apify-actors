@@ -54,7 +54,7 @@ export type ChangeType = 'added' | 'unchanged' | 'removed';
 export interface PageRecord {
     url: string;
     norm: string;
-    source: 'sitemap' | 'llms.txt';
+    source: 'sitemap' | 'llms.txt' | null;
     sourceSitemap: string | null;
     lastmod: string | null;
     changefreq: string | null;

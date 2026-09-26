@@ -27,6 +27,14 @@ import {
 
 const log = () => createSafeLogger();
 
+function hostOf(value: string): string {
+    try {
+        return new URL(value).host;
+    } catch {
+        return value;
+    }
+}
+
 export interface RunState {
     stop: boolean;
     chargeLimitNoted: boolean;
@@ -86,8 +94,19 @@ export async function processStartUrl(input: ResolvedInput, raw: string, state: 
     const errors: ErrorRow[] = [];
     const pages: PageRecord[] = [];
     const seenUrls = new Set<string>();
+    const halt = { dns: false };
 
     const recordError = (code: ErrorCode, url: string | null, httpStatus?: number) => {
+        if (code === 'DNS_ERROR') {
+            const siteHost = hostOf(classified.site);
+            const failedHost = hostOf(url ?? classified.site);
+            if (!errors.some((row) => row.errorCode === 'DNS_ERROR')) {
+                errors.push(makeErrorRow({ site: classified.site, url: failedHost, extractedAt }, 'DNS_ERROR'));
+                log().warning(`Recorded DNS_ERROR for ${failedHost}`);
+            }
+            if (failedHost === siteHost) halt.dns = true;
+            return;
+        }
         const row = makeErrorRow({ site: classified.site, url, extractedAt }, code);
         if (httpStatus != null) row.httpStatus = httpStatus;
         errors.push(row);
@@ -106,9 +125,13 @@ export async function processStartUrl(input: ResolvedInput, raw: string, state: 
         }
     }
 
-    const roots = await discoverRoots(input, classified, robots, timeoutMs, summary, recordError);
+    const roots = halt.dns
+        ? { urls: [] as string[], declared: 0 }
+        : await discoverRoots(input, classified, robots, timeoutMs, summary, recordError, halt);
     summary.sitemapsFound = roots.declared;
-    await crawlSitemaps(input, classified.site, roots.urls, robots, timeoutMs, filters, pages, seenUrls, summary, recordError, state);
+    if (!halt.dns) {
+        await crawlSitemaps(input, classified.site, roots.urls, robots, timeoutMs, filters, pages, seenUrls, summary, recordError, state, halt);
+    }
 
     if (pages.length === 0 && roots.urls.length === 0 && !errors.some((row) => row.errorCode.startsWith('SITEMAP_HTTP') || row.errorCode === 'TIMEOUT' || row.errorCode === 'BLOCKED_BY_ROBOTS' || row.errorCode === 'SITEMAP_PARSE_ERROR' || row.errorCode === 'SITEMAP_TOO_LARGE' || row.errorCode === 'GZIP_ERROR' || row.errorCode === 'REDIRECT_LOOP' || row.errorCode === 'RATE_LIMITED' || row.errorCode === 'DNS_ERROR' || row.errorCode === 'CONNECTION_ERROR')) {
         recordError('NO_SITEMAP_FOUND', null);
@@ -116,8 +139,8 @@ export async function processStartUrl(input: ResolvedInput, raw: string, state: 
         recordError('NO_SITEMAP_FOUND', null);
     }
 
-    if (input.checkLlmsTxt || classified.kind === 'llms') {
-        await readLlms(input, classified, timeoutMs, filters, pages, seenUrls, summary, recordError, state);
+    if (!halt.dns && (input.checkLlmsTxt || classified.kind === 'llms')) {
+        await readLlms(input, classified, timeoutMs, filters, pages, seenUrls, summary, recordError, state, halt);
     }
 
     summary.urlsTotal = pages.length;
@@ -184,6 +207,7 @@ async function discoverRoots(
     timeoutMs: number,
     summary: SiteSummary,
     recordError: (code: ErrorCode, url: string | null, httpStatus?: number) => void,
+    halt: { dns: boolean },
 ): Promise<{ urls: string[]; declared: number }> {
     if (classified.kind === 'sitemap') {
         if (input.respectRobotsTxt && !robots.isAllowed(classified.url)) {
@@ -207,6 +231,7 @@ async function discoverRoots(
     if (!input.probeCommonPaths) return { urls: [], declared: 0 };
     const found: string[] = [];
     for (const path of COMMON_SITEMAP_PATHS) {
+        if (halt.dns) break;
         const url = `${classified.site}${path}`;
         if (input.respectRobotsTxt && !robots.isAllowed(url)) {
             recordError('BLOCKED_BY_ROBOTS', url);
@@ -256,12 +281,13 @@ async function crawlSitemaps(
     summary: SiteSummary,
     recordError: (code: ErrorCode, url: string | null, httpStatus?: number) => void,
     state: RunState,
+    halt: { dns: boolean },
 ): Promise<void> {
     const queue = roots.map((url) => ({ url, depth: 1 }));
     const seenFiles = new Set<string>();
     let attempted = 0;
     while (queue.length > 0) {
-        if (state.stop) return;
+        if (state.stop || halt.dns) return;
         if (pages.length >= input.maxUrlsPerSite) {
             summary.truncated = true;
             note(summary, 'MAX_URLS_REACHED');
@@ -358,11 +384,13 @@ async function readLlms(
     summary: SiteSummary,
     recordError: (code: ErrorCode, url: string | null, httpStatus?: number) => void,
     state: RunState,
+    halt: { dns: boolean },
 ): Promise<void> {
     const files = classified.kind === 'llms'
         ? [classified.url]
         : [`${classified.site}/llms.txt`, `${classified.site}/llms-full.txt`];
     for (const url of files) {
+        if (halt.dns || state.stop) return;
         const isFull = url.toLowerCase().includes('llms-full.txt');
         const outcome = await download(url, timeoutMs, log());
         if (!outcome.ok) {
@@ -421,6 +449,19 @@ async function compareSite(input: ResolvedInput, site: string, pages: PageRecord
         note(summary, previous.code);
         return null;
     }
+    const hasBaseline = Boolean(previous && previous.ok);
+    if (!hasBaseline) {
+        const written = await writeSnapshot(input.stateStoreName, key, {
+            site,
+            createdAt: now,
+            urls: pages.map((page) => [page.norm, page.firstSeenAt ?? now, page.source]),
+        });
+        if (written !== 'ok') {
+            note(summary, written);
+            return null;
+        }
+        return [];
+    }
     const { added, removed } = applyDiff(pages, previous && previous.ok ? previous.urls : null, now);
     const charge = await chargeExtra('site-compared', 1);
     summary.chargedEvents['site-compared'] = charge.chargedCount;
@@ -432,7 +473,7 @@ async function compareSite(input: ResolvedInput, site: string, pages: PageRecord
     const written = await writeSnapshot(input.stateStoreName, key, {
         site,
         createdAt: now,
-        urls: pages.map((page) => [page.norm, page.firstSeenAt ?? now]),
+        urls: pages.map((page) => [page.norm, page.firstSeenAt ?? now, page.source]),
     });
     if (written !== 'ok') {
         clearChangeTypes(pages);

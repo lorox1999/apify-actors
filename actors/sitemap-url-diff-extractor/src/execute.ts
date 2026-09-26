@@ -1,4 +1,4 @@
-import { formatDoneMessage, resetChargedCounts, SummaryWriter } from '@apify-actors/common';
+import { flushDataset, formatDoneMessage, resetChargedCounts, SummaryWriter } from '@apify-actors/common';
 
 import { processStartUrl, type RunState } from './extract.js';
 import { runPool } from './hostLock.js';
@@ -22,6 +22,8 @@ export async function execute(raw: ActorInput | null | undefined): Promise<strin
             urls: result.summary.urlsOutput,
         });
     });
+
+    await flushDataset();
 
     const failed = outcomes.filter((outcome) => outcome.failed);
     const urls = outcomes.reduce((sum, outcome) => sum + outcome.urls, 0);
