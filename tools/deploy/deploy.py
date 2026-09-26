@@ -39,12 +39,14 @@ if st == 404:
     st, act = call('POST', '/acts', {'name': cfg['name'], 'title': cfg['title'], 'description': cfg['description'],
         'isPublic': False, 'defaultRunOptions': run_opts, 'versions': [version]})
     print('create actor', st, act.get('error'))
+    if st >= 300: sys.exit(1)
     actor_id = act['data']['id']
 else:
     actor_id = act['data']['id']
     st, r = call('PUT', f'/acts/{actor_id}/versions/{cfg["version"]}', version)
     if st == 404: st, r = call('POST', f'/acts/{actor_id}/versions', version)
     print('update version', st, r.get('error'))
+    if st >= 300: sys.exit(1)
     st, r = call('PUT', f'/acts/{actor_id}', {'isPublic': False, 'defaultRunOptions': run_opts})
     print('update actor defaults', st, r.get('error'))
 st, a = call('GET', f'/acts/{actor_id}')

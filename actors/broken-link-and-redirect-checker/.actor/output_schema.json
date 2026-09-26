@@ -1,0 +1,10 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Broken Link Checker output",
+  "properties": {
+    "links": { "type": "string", "title": "Checked links", "description": "One row per unique checked link (plus page and error rows). In crawl mode, problem links are written first.", "template": "{{links.apiDefaultDatasetUrl}}/items?view=links" },
+    "fixList": { "type": "string", "title": "Fix list", "description": "Source page, anchor text, link URL, status and failure reason for each link.", "template": "{{links.apiDefaultDatasetUrl}}/items?view=fixList" },
+    "brokenLinksCsv": { "type": "string", "title": "Broken links report (CSV)", "description": "One line per source page and link that is broken, restricted, unverified or skipped: source page, anchor text, link URL, status code, error code.", "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/BROKEN_LINKS.csv" },
+    "summary": { "type": "string", "title": "Summary", "description": "Per-site counts by status and error code, skipped and not-checked counts with reasons, mailto/tel counts, charged events.", "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY" }
+  }
+}

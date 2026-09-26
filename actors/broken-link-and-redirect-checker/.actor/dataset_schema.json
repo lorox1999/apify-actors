@@ -1,0 +1,389 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "type": "object",
+    "properties": {
+      "recordType": {
+        "type": "string",
+        "enum": [
+          "link",
+          "page",
+          "error"
+        ]
+      },
+      "site": {
+        "type": "string"
+      },
+      "linkUrl": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "linkType": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "internal",
+          "external",
+          null
+        ]
+      },
+      "element": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "a",
+          "img",
+          "script",
+          "link",
+          "iframe",
+          "input",
+          null
+        ]
+      },
+      "checkStatus": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "ok",
+          "redirect",
+          "broken",
+          "restricted",
+          "unverified",
+          "skipped",
+          null
+        ]
+      },
+      "statusCode": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "finalStatusCode": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "finalUrl": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "redirectCount": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "redirectChain": {
+        "type": [
+          "array",
+          "null"
+        ],
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "statusCode": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "responseTimeMs": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "method": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "HEAD",
+          "GET",
+          null
+        ]
+      },
+      "errorCode": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "errorDetail": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "errorMessage": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "sourcePage": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "anchorText": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "sourceCount": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "sources": {
+        "type": [
+          "array",
+          "null"
+        ],
+        "items": {
+          "type": "object",
+          "properties": {
+            "pageUrl": {
+              "type": "string"
+            },
+            "anchorText": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "element": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "pageUrl": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "depth": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "linksFound": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "brokenLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "restrictedLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "redirectLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "unverifiedLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "mailtoLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "telLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "otherSchemeLinks": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "truncated": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      },
+      "charged": {
+        "type": "boolean"
+      },
+      "checkedAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "recordType",
+      "site",
+      "charged",
+      "checkedAt"
+    ]
+  },
+  "views": {
+    "links": {
+      "title": "Checked links",
+      "transformation": {
+        "fields": [
+          "checkStatus",
+          "statusCode",
+          "linkUrl",
+          "sourcePage",
+          "anchorText",
+          "errorCode",
+          "finalUrl",
+          "redirectCount",
+          "responseTimeMs",
+          "linkType",
+          "sourceCount"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "linkUrl": {
+            "format": "link"
+          },
+          "sourcePage": {
+            "format": "link"
+          },
+          "finalUrl": {
+            "format": "link"
+          }
+        }
+      }
+    },
+    "fixList": {
+      "title": "Fix list (where each link appears)",
+      "transformation": {
+        "fields": [
+          "sourcePage",
+          "anchorText",
+          "linkUrl",
+          "checkStatus",
+          "statusCode",
+          "errorCode",
+          "errorMessage",
+          "sourceCount",
+          "sources"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "sourcePage": {
+            "format": "link"
+          },
+          "linkUrl": {
+            "format": "link"
+          }
+        }
+      }
+    },
+    "redirects": {
+      "title": "Redirect chains",
+      "transformation": {
+        "fields": [
+          "linkUrl",
+          "statusCode",
+          "redirectCount",
+          "finalUrl",
+          "finalStatusCode",
+          "redirectChain",
+          "responseTimeMs"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "linkUrl": {
+            "format": "link"
+          },
+          "finalUrl": {
+            "format": "link"
+          }
+        }
+      }
+    },
+    "pages": {
+      "title": "Crawled pages",
+      "transformation": {
+        "fields": [
+          "pageUrl",
+          "depth",
+          "linksFound",
+          "brokenLinks",
+          "restrictedLinks",
+          "redirectLinks",
+          "unverifiedLinks",
+          "mailtoLinks",
+          "telLinks",
+          "otherSchemeLinks",
+          "truncated"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "pageUrl": {
+            "format": "link"
+          }
+        }
+      }
+    },
+    "errors": {
+      "title": "Errors",
+      "transformation": {
+        "fields": [
+          "recordType",
+          "site",
+          "linkUrl",
+          "errorCode",
+          "errorDetail",
+          "errorMessage"
+        ]
+      },
+      "display": {
+        "component": "table"
+      }
+    }
+  }
+}

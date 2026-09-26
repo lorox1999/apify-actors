@@ -1,0 +1,219 @@
+{
+  "title": "Broken Link Checker – Site Crawl & Bulk URL Status",
+  "description": "Find broken links on a website or check a list of URLs in bulk. Crawl mode scans pages on the same host and checks every link it finds (internal and, optionally, external) with source page and anchor text. List mode checks URLs directly and returns status code, final URL, redirect chain and response time. HTTP only, no browser, no proxy; respects robots.txt.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "mode": {
+      "title": "Mode",
+      "type": "string",
+      "description": "crawl = scan pages starting from your start URLs (same host) and check every link found on them. list = check each URL you enter (or load from a dataset) directly, without reading page content.",
+      "editor": "select",
+      "enum": [
+        "crawl",
+        "list"
+      ],
+      "enumTitles": [
+        "Crawl a website and check all links on its pages",
+        "Check a list of URLs (status, redirects, response time)"
+      ],
+      "default": "crawl"
+    },
+    "startUrls": {
+      "title": "Start URLs (crawl mode)",
+      "type": "array",
+      "description": "Crawl mode only. One page per line, for example a homepage. The crawler stays on the same host as each start URL and checks every link found on the pages it visits.",
+      "editor": "stringList",
+      "prefill": [
+        "https://docs.apify.com/academy"
+      ],
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 2048
+      }
+    },
+    "urls": {
+      "title": "URLs to check (list mode)",
+      "type": "array",
+      "description": "List mode only. One URL per line. Each URL is checked directly: status code, final URL, full redirect chain and response time. For more than 50,000 URLs, load them from a dataset instead.",
+      "editor": "stringList",
+      "maxItems": 50000,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 2048
+      }
+    },
+    "urlsDataset": {
+      "title": "Load URLs from a dataset (optional)",
+      "type": "string",
+      "description": "Pick one of your datasets, for example the output of a sitemap URL extractor. The Actor gets read-only access to this dataset only. In list mode each URL is checked; in crawl mode each URL is scanned as a page (set Max crawl depth to 0 to scan exactly these pages). Rows with recordType other than url are ignored.",
+      "editor": "resourcePicker",
+      "resourceType": "dataset",
+      "resourcePermissions": [
+        "READ"
+      ],
+      "sectionCaption": "Load URLs from a dataset",
+      "sectionDescription": "Chain this Actor after a sitemap URL extractor or any Actor that outputs URLs."
+    },
+    "urlsDatasetField": {
+      "title": "URL field in the dataset",
+      "type": "string",
+      "description": "Name of the field that holds the URL.",
+      "editor": "textfield",
+      "default": "url",
+      "pattern": "^[A-Za-z0-9_.-]{1,100}$"
+    },
+    "maxDatasetItems": {
+      "title": "Max rows to read from the dataset",
+      "type": "integer",
+      "description": "Safety cap on how many dataset rows are read.",
+      "default": 100000,
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "maxPagesPerSite": {
+      "title": "Max pages per site",
+      "type": "integer",
+      "description": "Crawl mode only. Stop reading new pages on each start site after this many. The cap is per start site (each start URL's origin), not one shared total. The run also stops after 100,000 pages across all sites. Each page that is fetched and parsed is billed as one page-crawled event; pages that fail to load are free. The older name maxPages is accepted as the same per-site cap.",
+      "prefill": 5,
+      "default": 100,
+      "minimum": 1,
+      "maximum": 100000,
+      "sectionCaption": "Crawl settings",
+      "sectionDescription": "Only used in crawl mode. The crawler never leaves the start URL's host (plus subdomains if enabled)."
+    },
+    "maxDepth": {
+      "title": "Max crawl depth",
+      "type": "integer",
+      "description": "0 = scan only the start URLs (and dataset URLs); 1 = also pages they link to; and so on. Links are always checked, even on the last level.",
+      "default": 3,
+      "minimum": 0,
+      "maximum": 20
+    },
+    "includeSubdomains": {
+      "title": "Treat subdomains as internal",
+      "type": "boolean",
+      "description": "When on, blog.example.com counts as the same site as example.com and is crawled too. www and non-www are always treated as the same site.",
+      "default": false
+    },
+    "checkExternalLinks": {
+      "title": "Check external links",
+      "type": "boolean",
+      "description": "Also check links that point to other websites (one lightweight request each; external pages are never crawled). When off, external links are counted but not checked or billed.",
+      "default": true
+    },
+    "checkAssetLinks": {
+      "title": "Also check images, scripts, stylesheets and iframes",
+      "type": "boolean",
+      "description": "By default only <a href> links are checked. Turn on to also check img src, script src, link rel=stylesheet href and iframe src.",
+      "default": false
+    },
+    "includeUrlRegex": {
+      "title": "Only crawl and check URLs matching (regex)",
+      "type": "string",
+      "description": "JavaScript regular expression, for example /docs/. Non-matching URLs are counted in the summary but not crawled, checked or billed.",
+      "editor": "textfield"
+    },
+    "excludeUrlRegex": {
+      "title": "Skip URLs matching (regex)",
+      "type": "string",
+      "description": "JavaScript regular expression, for example \\.(pdf|zip)$ or linkedin\\.com. Matching URLs are counted in the summary but not crawled, checked or billed.",
+      "editor": "textfield"
+    },
+    "maxLinks": {
+      "title": "Max links to check",
+      "type": "integer",
+      "description": "Stop after checking this many unique links in total. Each checked link is billed as one link-checked event, so this is also your cost cap. Links found but not checked because of this limit are counted in the summary.",
+      "prefill": 100,
+      "default": 10000,
+      "minimum": 1,
+      "maximum": 1000000,
+      "sectionCaption": "Limits and output"
+    },
+    "outputMode": {
+      "title": "Output rows",
+      "type": "string",
+      "description": "Which link rows to write. Billing does not change: every checked link is billed once, whichever rows you choose to keep. Counts for all links are always in the summary.",
+      "editor": "select",
+      "enum": [
+        "all",
+        "problemsOnly",
+        "brokenOnly"
+      ],
+      "enumTitles": [
+        "All checked links",
+        "Problems only (broken, restricted, redirected, unverified, skipped)",
+        "Broken links only"
+      ],
+      "default": "all"
+    },
+    "maxSourcesPerLink": {
+      "title": "Max source pages listed per link",
+      "type": "integer",
+      "description": "Crawl mode only. For each link, list up to this many pages that contain it (with anchor text). The total number of pages is always reported in sourceCount.",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 100
+    },
+    "maxConcurrencyPerHost": {
+      "title": "Parallel requests per host",
+      "type": "integer",
+      "description": "Kept low on purpose so websites are not overloaded. The Actor slows down further when a site answers 429 or 503.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5,
+      "sectionCaption": "Politeness and HTTP settings",
+      "sectionDescription": "No browser and no proxy are used. The Actor identifies itself with its own user agent."
+    },
+    "maxConcurrency": {
+      "title": "Parallel requests in total",
+      "type": "integer",
+      "description": "Upper limit across all hosts.",
+      "default": 20,
+      "minimum": 1,
+      "maximum": 50
+    },
+    "minDelayPerHostMs": {
+      "title": "Minimum delay between requests to the same host (ms)",
+      "type": "integer",
+      "description": "A Crawl-delay in robots.txt is honored if it is longer (up to 10 seconds).",
+      "default": 250,
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "respectRobotsTxt": {
+      "title": "Respect robots.txt",
+      "type": "boolean",
+      "description": "Do not crawl or check URLs that robots.txt disallows for this Actor. Such links are reported as BLOCKED_BY_ROBOTS and are not billed.",
+      "default": true
+    },
+    "useHeadRequests": {
+      "title": "Use HEAD requests first",
+      "type": "boolean",
+      "description": "Check links with a lightweight HEAD request and fall back to GET (headers only) if HEAD fails or returns an error. Turn off to always use GET.",
+      "default": true
+    },
+    "requestTimeoutSecs": {
+      "title": "Request timeout (seconds)",
+      "type": "integer",
+      "description": "Per request. Timed-out requests are retried once before being reported as TIMEOUT.",
+      "default": 15,
+      "minimum": 3,
+      "maximum": 60
+    },
+    "maxRedirects": {
+      "title": "Max redirects to follow",
+      "type": "integer",
+      "description": "Longer chains are reported as TOO_MANY_REDIRECTS. 0 = do not follow redirects (report the first response).",
+      "default": 10,
+      "minimum": 0,
+      "maximum": 20
+    }
+  },
+  "required": [
+    "mode"
+  ]
+}

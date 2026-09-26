@@ -5,6 +5,7 @@ Private monorepo for Apify Store pay-per-event Actors.
 ## Layout
 
 - `actors/sitemap-url-diff-extractor` — sitemap URL extractor with change tracking and an llms.txt check (implemented).
+- `actors/broken-link-and-redirect-checker` — broken link checker with site crawl and bulk URL status (implemented).
 - `actors/rising-repos-for-github` — placeholder until a later task.
 - `actors/bulk-core-web-vitals-checker` — bulk Lighthouse Core Web Vitals audits (local Chrome, optional user PageSpeed Insights key).
 - `packages/common` — shared charging, errors, redaction, URL helpers, and HTTP retry.

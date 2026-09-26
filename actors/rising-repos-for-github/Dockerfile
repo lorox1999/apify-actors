@@ -11,6 +11,7 @@ COPY --chown=myuser:myuser actors/rising-repos-for-github actors/rising-repos-fo
 COPY --chown=myuser:myuser packages/common/package.json packages/common/package.json
 COPY --chown=myuser:myuser actors/sitemap-url-diff-extractor/package.json actors/sitemap-url-diff-extractor/package.json
 COPY --chown=myuser:myuser actors/bulk-core-web-vitals-checker/package.json actors/bulk-core-web-vitals-checker/package.json
+COPY --chown=myuser:myuser actors/broken-link-and-redirect-checker/package.json actors/broken-link-and-redirect-checker/package.json
 
 RUN pnpm install --frozen-lockfile --filter rising-repos-for-github...
 RUN pnpm --filter rising-repos-for-github build
