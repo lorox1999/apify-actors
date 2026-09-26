@@ -1,0 +1,40 @@
+const TEMPLATES: Record<string, string> = {
+    HTTP_404_NOT_FOUND: 'Server answered 404 Not Found',
+    HTTP_410_GONE: 'Server answered 410 Gone',
+    HTTP_4XX: 'Server answered an HTTP 4xx error',
+    HTTP_401_UNAUTHORIZED: 'Server answered 401 Unauthorized',
+    HTTP_403_FORBIDDEN: 'Server answered 403 Forbidden',
+    HTTP_407_PROXY_AUTH: 'Server answered 407 Proxy Authentication Required',
+    HTTP_451_LEGAL: 'Server answered 451 Unavailable For Legal Reasons',
+    HTTP_5XX: 'Server answered a 5xx error after a retry',
+    RATE_LIMITED: 'Server answered 429 after waiting and retrying once',
+    BOT_PROTECTION: 'The server returned a bot-protection response. The Actor does not try to bypass it.',
+    DNS_NOT_FOUND: 'DNS lookup failed because the host does not exist',
+    DNS_TEMPORARY_FAILURE: 'DNS lookup failed temporarily after a retry',
+    CONNECTION_REFUSED: 'The connection was refused',
+    CONNECTION_RESET: 'The connection was reset after a retry',
+    TIMEOUT: 'The request timed out after a retry',
+    TLS_ERROR: 'The TLS handshake failed',
+    REDIRECT_LOOP: 'The redirect chain repeated a URL',
+    TOO_MANY_REDIRECTS: 'The redirect chain exceeded the maximum number of redirects',
+    INVALID_REDIRECT: 'A redirect was missing a usable Location header',
+    UNSUPPORTED_REDIRECT_SCHEME: 'The redirect target is not an http(s) URL',
+    UNEXPECTED_STATUS: 'The server returned a non-standard status code',
+    BLOCKED_BY_ROBOTS: 'robots.txt disallows this URL',
+    ROBOTS_UNREACHABLE: 'robots.txt could not be read (server error). The URL was not requested.',
+    PRIVATE_HOST: 'The URL resolves to a private or link-local address',
+    INVALID_URL: 'The link could not be parsed as a URL',
+    INVALID_INPUT_URL: 'The input URL is not an http(s) URL',
+    START_URL_FAILED: 'The start URL could not be opened',
+    MODE_INPUT_MISMATCH: 'The selected mode does not match the URLs provided. Switch mode or add the matching URL field.',
+    NO_VALID_INPUT: 'Every input URL was invalid',
+    INVALID_REGEX: 'A URL filter regular expression could not be compiled',
+    DATASET_NOT_ACCESSIBLE: 'The dataset does not exist or this run cannot read it',
+    DATASET_FIELD_MISSING: 'The dataset rows do not contain the configured URL field',
+    CONNECTION_ERROR: 'The connection failed',
+};
+
+export function errorMessage(code: string | null): string | null {
+    if (!code) return null;
+    return TEMPLATES[code] ?? 'The link check failed';
+}

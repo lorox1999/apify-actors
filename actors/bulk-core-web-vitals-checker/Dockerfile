@@ -13,6 +13,7 @@ COPY --chown=myuser:myuser packages/common packages/common
 COPY --chown=myuser:myuser actors/bulk-core-web-vitals-checker actors/bulk-core-web-vitals-checker
 COPY --chown=myuser:myuser actors/sitemap-url-diff-extractor/package.json actors/sitemap-url-diff-extractor/package.json
 COPY --chown=myuser:myuser actors/rising-repos-for-github/package.json actors/rising-repos-for-github/package.json
+COPY --chown=myuser:myuser actors/broken-link-and-redirect-checker/package.json actors/broken-link-and-redirect-checker/package.json
 
 RUN pnpm install --frozen-lockfile --filter bulk-core-web-vitals-checker... \
     && pnpm --filter bulk-core-web-vitals-checker rebuild esbuild

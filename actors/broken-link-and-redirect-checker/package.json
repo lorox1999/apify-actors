@@ -1,0 +1,27 @@
+{
+  "name": "broken-link-and-redirect-checker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Broken link checker for SEO audits, site migrations and QA. Crawl a website or check a list of URLs in bulk.",
+  "scripts": {
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint:readme": "markdownlint-cli2 README.md"
+  },
+  "dependencies": {
+    "@apify-actors/common": "workspace:*",
+    "apify": "3.7.2",
+    "htmlparser2": "^10.0.0",
+    "robots-parser": "3.0.1",
+    "undici": "^7.16.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10",
+    "markdownlint-cli2": "^0.18.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
