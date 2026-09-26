@@ -1,0 +1,8 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Bulk Core Web Vitals Checker output",
+  "properties": {
+    "results": { "type": "string", "title": "Audit results", "description": "One row per URL and device.", "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview" },
+    "summary": { "type": "string", "title": "Run summary", "description": "Audited, failed and billed counts.", "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY" }
+  }
+}

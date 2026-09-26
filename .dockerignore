@@ -1,0 +1,7 @@
+**/node_modules
+**/dist
+**/storage
+**/coverage
+**/.git
+**/*.log
+**/.apify

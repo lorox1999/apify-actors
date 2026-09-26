@@ -1,0 +1,17 @@
+{
+  "name": "bulk-core-web-vitals-checker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "apify": "3.7.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

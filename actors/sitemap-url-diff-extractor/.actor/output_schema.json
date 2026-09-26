@@ -1,0 +1,8 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Sitemap URL Extractor output",
+  "properties": {
+    "urls": { "type": "string", "title": "URLs", "description": "One row per URL (plus error rows).", "template": "{{links.apiDefaultDatasetUrl}}/items?view=urls" },
+    "summary": { "type": "string", "title": "Per-site summary", "description": "Sitemaps found, counts, llms.txt status, added/removed counts per site.", "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY" }
+  }
+}

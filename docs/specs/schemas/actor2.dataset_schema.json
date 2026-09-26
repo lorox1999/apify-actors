@@ -1,0 +1,63 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "type": "object",
+    "properties": {
+      "url": { "type": "string" },
+      "finalUrl": { "type": ["string", "null"] },
+      "strategy": { "type": "string", "enum": ["mobile", "desktop"] },
+      "engine": { "type": "string", "enum": ["local", "psi"] },
+      "status": { "type": "string", "enum": ["ok", "error"] },
+      "performanceScore": { "type": ["integer", "null"] },
+      "accessibilityScore": { "type": ["integer", "null"] },
+      "bestPracticesScore": { "type": ["integer", "null"] },
+      "seoScore": { "type": ["integer", "null"] },
+      "lcpMs": { "type": ["number", "null"] },
+      "fcpMs": { "type": ["number", "null"] },
+      "cls": { "type": ["number", "null"] },
+      "tbtMs": { "type": ["number", "null"] },
+      "speedIndexMs": { "type": ["number", "null"] },
+      "ttfbMs": { "type": ["number", "null"] },
+      "lcpRating": { "type": ["string", "null"], "enum": ["good", "needs-improvement", "poor", null] },
+      "clsRating": { "type": ["string", "null"], "enum": ["good", "needs-improvement", "poor", null] },
+      "tbtRating": { "type": ["string", "null"], "enum": ["good", "needs-improvement", "poor", null] },
+      "fieldDataAvailable": { "type": ["boolean", "null"] },
+      "fieldLcpP75Ms": { "type": ["number", "null"] },
+      "fieldInpP75Ms": { "type": ["number", "null"] },
+      "fieldClsP75": { "type": ["number", "null"] },
+      "fieldOverallCategory": { "type": ["string", "null"] },
+      "topOpportunities": {
+        "type": ["array", "null"],
+        "items": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "savingsMs": { "type": ["number", "null"] }, "savingsBytes": { "type": ["number", "null"] } } }
+      },
+      "totalByteWeight": { "type": ["number", "null"] },
+      "requestCount": { "type": ["integer", "null"] },
+      "lighthouseVersion": { "type": ["string", "null"] },
+      "benchmarkIndex": { "type": ["number", "null"] },
+      "auditDurationMs": { "type": ["integer", "null"] },
+      "runWarnings": { "type": ["array", "null"], "items": { "type": "string" } },
+      "charged": { "type": "boolean" },
+      "errorCode": { "type": ["string", "null"] },
+      "errorMessage": { "type": ["string", "null"] },
+      "auditedAt": { "type": "string" }
+    },
+    "required": ["url", "strategy", "engine", "status", "charged", "auditedAt"]
+  },
+  "views": {
+    "overview": {
+      "title": "Core Web Vitals",
+      "transformation": { "fields": ["url", "strategy", "performanceScore", "lcpMs", "cls", "tbtMs", "fcpMs", "speedIndexMs", "accessibilityScore", "bestPracticesScore", "seoScore", "status", "errorCode"] },
+      "display": { "component": "table", "properties": { "url": { "format": "link" } } }
+    },
+    "field": {
+      "title": "Field data (PSI key only)",
+      "transformation": { "fields": ["url", "strategy", "fieldDataAvailable", "fieldLcpP75Ms", "fieldInpP75Ms", "fieldClsP75", "fieldOverallCategory"] },
+      "display": { "component": "table" }
+    },
+    "opportunities": {
+      "title": "Top fixes",
+      "transformation": { "fields": ["url", "strategy", "topOpportunities"], "unwind": ["topOpportunities"] },
+      "display": { "component": "table" }
+    }
+  }
+}

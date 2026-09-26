@@ -1,0 +1,27 @@
+{
+  "name": "sitemap-url-diff-extractor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sitemap URL extractor for SEO audits, migrations and crawl seeding.",
+  "scripts": {
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint:readme": "markdownlint-cli2 README.md"
+  },
+  "dependencies": {
+    "@apify-actors/common": "workspace:*",
+    "apify": "3.7.2",
+    "robots-parser": "3.0.1",
+    "sax": "1.6.1"
+  },
+  "devDependencies": {
+    "@types/sax": "^1.2.7",
+    "esbuild": "^0.25.10",
+    "markdownlint-cli2": "^0.18.1",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

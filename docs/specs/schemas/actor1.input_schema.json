@@ -1,0 +1,187 @@
+{
+  "title": "Sitemap URL Extractor with Diff & llms.txt Check",
+  "description": "Extract every URL from a website's XML sitemaps. Sitemaps are discovered via robots.txt and common paths; sitemap indexes and .gz files are followed. Optionally compare with your previous run to get added and removed URLs.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrls": {
+      "title": "Websites, sitemap URLs or robots.txt URLs",
+      "type": "array",
+      "description": "One entry per line. Accepts a domain (example.com), a homepage URL, a robots.txt URL, a sitemap URL (.xml, .xml.gz, .txt) or an llms.txt URL. For a homepage or domain, the extractor finds sitemaps via robots.txt and common paths such as /sitemap.xml.",
+      "editor": "stringList",
+      "prefill": [
+        "https://docs.apify.com"
+      ],
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 2048
+      }
+    },
+    "maxUrlsPerSite": {
+      "title": "Max URLs per website",
+      "type": "integer",
+      "description": "Stop after this many URL rows per website. Each URL row is billed as one url-extracted event, so this is also your cost cap per site.",
+      "prefill": 100,
+      "default": 50000,
+      "minimum": 1,
+      "maximum": 1000000
+    },
+    "discoverFromRobotsTxt": {
+      "title": "Discover sitemaps from robots.txt",
+      "type": "boolean",
+      "description": "Read Sitemap: lines from /robots.txt.",
+      "default": true,
+      "sectionCaption": "Sitemap discovery",
+      "sectionDescription": "How sitemaps are found when you enter a domain or homepage."
+    },
+    "probeCommonPaths": {
+      "title": "Probe common sitemap paths",
+      "type": "boolean",
+      "description": "If robots.txt lists no sitemap, try /sitemap.xml, /sitemap_index.xml, /sitemap-index.xml, /sitemap.xml.gz and /wp-sitemap.xml.",
+      "default": true
+    },
+    "checkLlmsTxt": {
+      "title": "Check llms.txt and llms-full.txt",
+      "type": "boolean",
+      "description": "Record whether /llms.txt and /llms-full.txt exist, their size and how many links they contain. This check is free.",
+      "default": true
+    },
+    "includeLlmsTxtUrls": {
+      "title": "Also output URLs listed in llms.txt",
+      "type": "boolean",
+      "description": "Add each link found in llms.txt as a URL row (source = llms.txt). Billed like any other URL row.",
+      "default": false
+    },
+    "maxSitemapFiles": {
+      "title": "Max sitemap files per website",
+      "type": "integer",
+      "description": "Safety cap for very large sitemap indexes.",
+      "default": 500,
+      "minimum": 1,
+      "maximum": 5000
+    },
+    "maxSitemapDepth": {
+      "title": "Max sitemap index depth",
+      "type": "integer",
+      "description": "How many levels of nested sitemap indexes to follow.",
+      "default": 5,
+      "minimum": 1,
+      "maximum": 10
+    },
+    "includeUrlRegex": {
+      "title": "Include URLs matching (regex)",
+      "type": "string",
+      "description": "Only keep URLs that match this JavaScript regular expression, for example /blog/. Filtered-out URLs are not billed.",
+      "editor": "textfield",
+      "sectionCaption": "Filters",
+      "sectionDescription": "Filtered-out URLs are never written to the dataset and never billed."
+    },
+    "excludeUrlRegex": {
+      "title": "Exclude URLs matching (regex)",
+      "type": "string",
+      "description": "Drop URLs that match this JavaScript regular expression, for example \\.(pdf|jpg)$.",
+      "editor": "textfield"
+    },
+    "lastmodFrom": {
+      "title": "Last modified on or after",
+      "type": "string",
+      "description": "Keep only URLs whose lastmod is on or after this date. Absolute (2026-09-01) or relative (7 days). URLs without lastmod are kept unless 'Drop URLs without lastmod' is on.",
+      "editor": "datepicker",
+      "dateType": "absoluteOrRelative"
+    },
+    "lastmodTo": {
+      "title": "Last modified on or before",
+      "type": "string",
+      "description": "Keep only URLs whose lastmod is on or before this date.",
+      "editor": "datepicker",
+      "dateType": "absoluteOrRelative"
+    },
+    "dropUrlsWithoutLastmod": {
+      "title": "Drop URLs without lastmod when a date filter is set",
+      "type": "boolean",
+      "default": false,
+      "description": "Only applies when a lastmod filter is set."
+    },
+    "sameHostOnly": {
+      "title": "Keep only URLs on the same host",
+      "type": "boolean",
+      "description": "Drop sitemap entries that point to other hosts.",
+      "default": false
+    },
+    "compareWithPreviousRun": {
+      "title": "Compare with previous run (added / removed URLs)",
+      "type": "boolean",
+      "description": "Save a snapshot of each website's URL list in a named key-value store in your own Apify account and mark each URL as added or unchanged since the last snapshot. URLs that disappeared are added as rows with changeType = removed.",
+      "default": false,
+      "sectionCaption": "Change tracking",
+      "sectionDescription": "Snapshots are stored in your own account. Nobody else can read them."
+    },
+    "stateStoreName": {
+      "title": "Snapshot store name",
+      "type": "string",
+      "description": "Name of the key-value store (in your account) that keeps the snapshots. Use different names to keep separate histories.",
+      "editor": "textfield",
+      "default": "sitemap-url-diff-state",
+      "pattern": "^[a-zA-Z0-9-]{1,63}$"
+    },
+    "outputMode": {
+      "title": "Output mode",
+      "type": "string",
+      "description": "all = every current URL plus removed URLs. changesOnly = only added and removed URLs (requires 'Compare with previous run').",
+      "editor": "select",
+      "enum": [
+        "all",
+        "changesOnly"
+      ],
+      "enumTitles": [
+        "All URLs (with change flags)",
+        "Only added and removed URLs"
+      ],
+      "default": "all"
+    },
+    "checkHttpStatus": {
+      "title": "Check HTTP status of each URL",
+      "type": "boolean",
+      "description": "Send a lightweight HEAD request (GET if HEAD is not allowed) to each URL and record the status code and final URL. Billed as status-checked per URL. Slower; respects robots.txt and per-host rate limits.",
+      "default": false,
+      "sectionCaption": "HTTP status check (optional, billed separately)"
+    },
+    "statusCheckMaxUrls": {
+      "title": "Max URLs to status-check per website",
+      "type": "integer",
+      "default": 1000,
+      "minimum": 1,
+      "maximum": 100000,
+      "description": "Upper limit of URLs to status-check for each website. Only used when HTTP status check is on."
+    },
+    "statusCheckConcurrencyPerHost": {
+      "title": "Parallel status checks per host",
+      "type": "integer",
+      "description": "Kept low on purpose so target websites are not overloaded.",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 5
+    },
+    "respectRobotsTxt": {
+      "title": "Respect robots.txt",
+      "type": "boolean",
+      "description": "Skip sitemap files and status checks for paths disallowed by robots.txt.",
+      "default": true,
+      "sectionCaption": "Advanced"
+    },
+    "requestTimeoutSecs": {
+      "title": "Request timeout (seconds)",
+      "type": "integer",
+      "default": 30,
+      "minimum": 5,
+      "maximum": 120,
+      "description": "Timeout for each robots.txt, sitemap or llms.txt request."
+    }
+  },
+  "required": [
+    "startUrls"
+  ]
+}
