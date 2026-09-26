@@ -1,0 +1,25 @@
+{
+    "title": "Pay-per-event Scraper input",
+    "type": "object",
+    "schemaVersion": 1,
+    "properties": {
+        "startUrls": {
+            "title": "Start URLs",
+            "type": "array",
+            "description": "List of URLs to scrape.",
+            "editor": "requestListSources",
+            "default": [
+                { "url": "https://example.com" },
+                { "url": "https://www.iana.org/help/example-domains" }
+            ]
+        },
+        "maxItems": {
+            "title": "Max items",
+            "type": "integer",
+            "description": "Maximum number of pages to scrape (and charge for).",
+            "default": 20,
+            "minimum": 1
+        }
+    },
+    "required": []
+}

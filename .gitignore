@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Apify / Crawlee local storage
+storage/
+**/storage/
+apify_storage/
+crawlee_storage/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Env
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/
