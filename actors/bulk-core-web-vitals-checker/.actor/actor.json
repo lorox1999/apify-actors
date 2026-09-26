@@ -3,7 +3,7 @@
   "name": "bulk-core-web-vitals-checker",
   "title": "Bulk Core Web Vitals Checker – Lighthouse Audit",
   "description": "Bulk Core Web Vitals checker that runs real Lighthouse audits in the cloud. Paste URLs or reuse a dataset and get Performance, Accessibility, Best Practices and SEO scores plus LCP, CLS, TBT, FCP and top fixes per page, mobile or desktop. No API key needed; add your own PageSpeed key for field data.",
-  "version": "0.0",
+  "version": "0.1",
   "buildTag": "latest",
   "dockerfile": "../Dockerfile",
   "dockerContextDir": "../../..",
@@ -14,5 +14,5 @@
   "output": "./output_schema.json",
   "minMemoryMbytes": 1024,
   "maxMemoryMbytes": 8192,
-  "defaultMemoryMbytes": "equalText(get(input, 'engine', 'local'), 'psi') ? 1024 : 4096"
+  "defaultMemoryMbytes": 4096
 }

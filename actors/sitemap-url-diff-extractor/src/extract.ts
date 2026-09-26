@@ -4,6 +4,7 @@ import {
     makeErrorRow,
     pushCharged,
     pushFree,
+    type ChargeOutcome,
     type ErrorCode,
     type ErrorRow,
 } from '@apify-actors/common';
@@ -58,6 +59,7 @@ function blankSummary(site: string): SiteSummary {
         partial: false,
         failedSitemapFiles: 0,
         chargedEvents: { 'url-extracted': 0, 'status-checked': 0, 'site-compared': 0 },
+        wouldBeChargedEvents: { 'url-extracted': 0, 'status-checked': 0, 'site-compared': 0 },
         warnings: [],
         statusChecksSkipped: 0,
     };
@@ -65,6 +67,11 @@ function blankSummary(site: string): SiteSummary {
 
 function note(summary: SiteSummary, code: string): void {
     if (!summary.warnings.includes(code)) summary.warnings.push(code);
+}
+
+function recordCharge(summary: SiteSummary, event: 'url-extracted' | 'status-checked' | 'site-compared', outcome: ChargeOutcome): void {
+    summary.chargedEvents[event] = (summary.chargedEvents[event] ?? 0) + outcome.chargedCount;
+    summary.wouldBeChargedEvents[event] = (summary.wouldBeChargedEvents[event] ?? 0) + outcome.wouldBeChargedCount;
 }
 
 async function pushError(summarySite: string, code: ErrorCode, url: string | null, extractedAt: string, httpStatus?: number): Promise<void> {
@@ -168,8 +175,8 @@ export async function processStartUrl(input: ResolvedInput, raw: string, state: 
     for (const page of output) {
         if (state.stop) break;
         const outcome = await pushCharged(pageToRow(classified.site, page, extractedAt), 'url-extracted');
-        summary.chargedEvents['url-extracted'] = (summary.chargedEvents['url-extracted'] ?? 0) + outcome.chargedCount;
-        if (outcome.chargedCount > 0) summary.urlsOutput += 1;
+        recordCharge(summary, 'url-extracted', outcome);
+        if (outcome.accepted) summary.urlsOutput += 1;
         if (outcome.limitReached) {
             state.stop = true;
             note(summary, 'CHARGE_LIMIT_REACHED');
@@ -464,8 +471,8 @@ async function compareSite(input: ResolvedInput, site: string, pages: PageRecord
     }
     const { added, removed } = applyDiff(pages, previous && previous.ok ? previous.urls : null, now);
     const charge = await chargeExtra('site-compared', 1);
-    summary.chargedEvents['site-compared'] = charge.chargedCount;
-    if (charge.chargedCount < 1) {
+    recordCharge(summary, 'site-compared', charge);
+    if (!charge.accepted) {
         clearChangeTypes(pages);
         note(summary, 'CHARGE_LIMIT_REACHED');
         return null;
@@ -529,8 +536,8 @@ async function statusCheckPages(
             return;
         }
         const charge = await chargeExtra('status-checked', 1);
-        summary.chargedEvents['status-checked'] = (summary.chargedEvents['status-checked'] ?? 0) + charge.chargedCount;
-        if (charge.chargedCount < 1) {
+        recordCharge(summary, 'status-checked', charge);
+        if (!charge.accepted) {
             state.stop = true;
             note(summary, 'CHARGE_LIMIT_REACHED');
             return;

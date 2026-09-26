@@ -1,0 +1,36 @@
+{
+  "lighthouseResult": {
+    "lighthouseVersion": "13.5.0",
+    "finalUrl": "https://example.com/",
+    "categories": {
+      "performance": { "score": 0.8 },
+      "accessibility": { "score": 0.9 },
+      "best-practices": { "score": 0.95 },
+      "seo": { "score": 0.91 }
+    },
+    "audits": {
+      "largest-contentful-paint": { "id": "largest-contentful-paint", "numericValue": 2100 },
+      "cumulative-layout-shift": { "id": "cumulative-layout-shift", "numericValue": 0.05 },
+      "total-blocking-time": { "id": "total-blocking-time", "numericValue": 120 },
+      "first-contentful-paint": { "id": "first-contentful-paint", "numericValue": 900 },
+      "speed-index": { "id": "speed-index", "numericValue": 1400 },
+      "server-response-time": { "id": "server-response-time", "numericValue": 80 }
+    }
+  },
+  "loadingExperience": {
+    "origin_fallback": true,
+    "overall_category": "FAST",
+    "metrics": {
+      "LARGEST_CONTENTFUL_PAINT_MS": { "percentile": 2100 },
+      "INTERACTION_TO_NEXT_PAINT": { "percentile": 180 },
+      "CUMULATIVE_LAYOUT_SHIFT_SCORE": {
+        "percentile": 5,
+        "distributions": [
+          { "min": 0, "max": 10, "proportion": 0.9 },
+          { "min": 10, "max": 25, "proportion": 0.08 },
+          { "min": 25, "proportion": 0.02 }
+        ]
+      }
+    }
+  }
+}
