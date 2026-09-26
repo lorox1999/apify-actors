@@ -100,7 +100,7 @@
     "engine": {
       "title": "Audit engine",
       "type": "string",
-      "description": "local = Lighthouse runs inside this Actor (no key needed, billed as url-audited-local). psi = use your own PageSpeed Insights API key (cheaper, includes Chrome UX Report field data when available, billed as url-audited).",
+      "description": "local = Lighthouse runs inside this Actor (no key needed, billed as url-audited-local). The Actor default memory is 4096 MB, which local mode needs. psi = use your own PageSpeed Insights API key (cheaper, includes Chrome UX Report field data when available, billed as url-audited). For psi, set the run memory to 1 GB (1024 MB) to cut cost. Local mode still requires at least 4096 MB.",
       "editor": "select",
       "enum": [
         "local",
@@ -124,7 +124,7 @@
       "title": "Timeout per audit (seconds)",
       "type": "integer",
       "description": "Audits that take longer are recorded as TIMEOUT and not billed.",
-      "default": 60,
+      "default": 90,
       "minimum": 20,
       "maximum": 180,
       "sectionCaption": "Advanced"

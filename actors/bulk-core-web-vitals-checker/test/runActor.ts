@@ -66,6 +66,7 @@ export async function runInput(input: ActorInput, overrides: ExecuteOverrides = 
         failed: 0,
         failedByCode: {},
         billed: {},
+        wouldBeBilled: {},
         averageAuditDurationMs: null,
         chargeLimitReached: false,
         urlsRequested: 0,

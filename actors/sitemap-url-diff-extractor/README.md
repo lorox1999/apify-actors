@@ -113,7 +113,7 @@ Error row (not billed):
 }
 ```
 
-The default key-value store record `SUMMARY` has one object per site: sitemaps found, files parsed, URL counts, llms.txt status, added and removed counts, and the events charged for that site. If a run hits your maximum charge, the summary includes `CHARGE_LIMIT_REACHED` and the run ends successfully with the rows already written.
+The default key-value store record `SUMMARY` has one object per site: sitemaps found, files parsed, URL counts, llms.txt status, added and removed counts, and the events charged for that site. `chargedEvents` counts events `Actor.charge` actually billed. `wouldBeChargedEvents` counts the same work when it was accepted; on a run that is not pay-per-event, `chargedEvents` stays at zero and `wouldBeChargedEvents` holds the events that would have been billed. URL rows do not have a `charged` field. If a run hits your maximum charge, the summary includes `CHARGE_LIMIT_REACHED` and the run ends successfully with the rows already written.
 
 Dataset views:
 

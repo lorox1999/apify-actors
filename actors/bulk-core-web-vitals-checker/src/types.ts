@@ -107,6 +107,7 @@ export const ROW_KEYS = [
 export interface LhrAudit {
     id?: string;
     title?: string;
+    score?: number | null;
     numericValue?: number;
     details?: {
         type?: string;
@@ -140,7 +141,10 @@ export interface RunSummary {
     audited: number;
     failed: number;
     failedByCode: Record<string, number>;
+    /** Events `Actor.charge` actually billed. Empty when the run is not pay-per-event. */
     billed: Record<string, number>;
+    /** Accepted audits that would be billed. Equals `billed` on a pay-per-event run. */
+    wouldBeBilled: Record<string, number>;
     averageAuditDurationMs: number | null;
     chargeLimitReached: boolean;
     urlsRequested: number;

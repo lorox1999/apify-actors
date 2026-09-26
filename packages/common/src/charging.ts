@@ -1,7 +1,15 @@
 import { Actor } from 'apify';
 
 export interface ChargeOutcome {
+    /** Events `Actor.charge` actually billed. Zero when the run is not pay-per-event, or when the charge was refused. */
     chargedCount: number;
+    /**
+     * Events accepted as billable work. Matches `chargedCount` on a pay-per-event run.
+     * On an unmetered run this is the count that would have been billed.
+     */
+    wouldBeChargedCount: number;
+    /** True when the dataset row was written, or when an extra event was accepted. */
+    accepted: boolean;
     limitReached: boolean;
 }
 
@@ -9,20 +17,43 @@ export interface ChargeOutcome {
 const DATASET_BATCH_SIZE = 500;
 
 const counts = new Map<string, number>();
+const wouldBeCounts = new Map<string, number>();
 const pending: Record<string, unknown>[] = [];
 let writeQueue: Promise<void> = Promise.resolve();
 
 export function resetChargedCounts(): void {
     counts.clear();
+    wouldBeCounts.clear();
     pending.length = 0;
 }
 
+/** Events `Actor.charge` actually billed. Empty when the run is not pay-per-event. */
 export function getChargedCounts(): Record<string, number> {
     return Object.fromEntries(counts);
 }
 
+/** Accepted billable work, including events that were not billed because the run is unmetered. */
+export function getWouldBeChargedCounts(): Record<string, number> {
+    return Object.fromEntries(wouldBeCounts);
+}
+
 function addCount(eventName: string, n: number): void {
+    if (n <= 0) return;
     counts.set(eventName, (counts.get(eventName) ?? 0) + n);
+}
+
+function addWouldBe(eventName: string, n: number): void {
+    if (n <= 0) return;
+    wouldBeCounts.set(eventName, (wouldBeCounts.get(eventName) ?? 0) + n);
+}
+
+/** Rows that already have a `charged` field report whether this call billed them. */
+function stampCharged(item: Record<string, unknown>, charged: boolean): void {
+    if ('charged' in item) item.charged = charged;
+}
+
+function refused(): ChargeOutcome {
+    return { chargedCount: 0, wouldBeChargedCount: 0, accepted: false, limitReached: true };
 }
 
 interface ChargingManagerLike {
@@ -35,8 +66,9 @@ interface ChargingManagerLike {
 /**
  * True when the run is known NOT to use pay-per-event pricing (e.g. a private
  * deployment before pricing is configured). Actor.charge() then returns
- * chargedCount = 0 for every event, so without this check no row would ever be
- * written. In that case work proceeds unmetered (nothing is billed).
+ * chargedCount = 0 for every event. Rows are still written, with `charged`
+ * false when that field exists, and the work is counted as would-be-charged
+ * rather than billed.
  */
 export function isUnmetered(): boolean {
     try {
@@ -83,23 +115,31 @@ export async function flushDataset(): Promise<void> {
  */
 export async function pushCharged(item: Record<string, unknown>, eventName: string): Promise<ChargeOutcome> {
     if (isUnmetered()) {
+        stampCharged(item, false);
         await enqueueDataset(item);
-        addCount(eventName, 1);
-        return { chargedCount: 1, limitReached: false };
+        addWouldBe(eventName, 1);
+        return { chargedCount: 0, wouldBeChargedCount: 1, accepted: true, limitReached: false };
     }
     if (!(await canAfford(eventName, 1))) {
-        return { chargedCount: 0, limitReached: true };
+        stampCharged(item, false);
+        return refused();
     }
     const result = await Actor.charge({ eventName, count: 1 });
     const chargedCount = result.chargedCount ?? 0;
     if (chargedCount > 0) {
+        stampCharged(item, true);
         await enqueueDataset(item);
         addCount(eventName, chargedCount);
+        addWouldBe(eventName, chargedCount);
+        return {
+            chargedCount,
+            wouldBeChargedCount: chargedCount,
+            accepted: true,
+            limitReached: Boolean(result.eventChargeLimitReached),
+        };
     }
-    return {
-        chargedCount,
-        limitReached: Boolean(result.eventChargeLimitReached) || chargedCount < 1,
-    };
+    stampCharged(item, false);
+    return refused();
 }
 
 export async function pushFree(item: Record<string, unknown>): Promise<void> {
@@ -108,17 +148,22 @@ export async function pushFree(item: Record<string, unknown>): Promise<void> {
 
 export async function chargeExtra(eventName: string, count = 1): Promise<ChargeOutcome> {
     if (isUnmetered()) {
-        addCount(eventName, count);
-        return { chargedCount: count, limitReached: false };
+        addWouldBe(eventName, count);
+        return { chargedCount: 0, wouldBeChargedCount: count, accepted: true, limitReached: false };
     }
     if (!(await canAfford(eventName, count))) {
-        return { chargedCount: 0, limitReached: true };
+        return refused();
     }
     const result = await Actor.charge({ eventName, count });
     const chargedCount = result.chargedCount ?? 0;
-    if (chargedCount > 0) addCount(eventName, chargedCount);
+    if (chargedCount > 0) {
+        addCount(eventName, chargedCount);
+        addWouldBe(eventName, chargedCount);
+    }
     return {
         chargedCount,
+        wouldBeChargedCount: chargedCount,
+        accepted: chargedCount > 0,
         limitReached: Boolean(result.eventChargeLimitReached) || chargedCount < count,
     };
 }

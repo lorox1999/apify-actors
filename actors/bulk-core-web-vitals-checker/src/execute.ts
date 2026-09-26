@@ -1,5 +1,5 @@
 import { Actor, log } from 'apify';
-import { canAfford, clearSecrets, createSafeLogger, errorMessage, flushDataset, getChargedCounts, pushCharged, pushFree, registerSecret, resetChargedCounts } from '@apify-actors/common';
+import { canAfford, clearSecrets, createSafeLogger, errorMessage, flushDataset, getChargedCounts, getWouldBeChargedCounts, pushCharged, pushFree, registerSecret, resetChargedCounts } from '@apify-actors/common';
 
 import { AuditFailed, describeFailure } from './failures.js';
 import { FatalInputError } from './fatal.js';
@@ -81,6 +81,7 @@ function emptySummary(urlsRequested: number, auditsPlanned: number): RunSummary 
         failed: 0,
         failedByCode: {},
         billed: {},
+        wouldBeBilled: {},
         averageAuditDurationMs: null,
         chargeLimitReached: false,
         urlsRequested,
@@ -95,7 +96,9 @@ function statusMessage(summary: RunSummary, lowMemory: boolean): string {
     const reason = codes.length > 0 ? ` (${codes.join(', ')})` : '';
     const limit = summary.chargeLimitReached ? ' Charge limit reached; remaining URLs were not audited.' : '';
     const billed = Object.values(summary.billed).reduce((sum, count) => sum + count, 0);
-    return `Done: ${summary.audited} audited, ${summary.failed} failed${reason}, ${billed} billed.${limit}`;
+    const wouldBe = Object.values(summary.wouldBeBilled).reduce((sum, count) => sum + count, 0);
+    const billing = wouldBe === billed ? `${billed} billed` : `${billed} billed, ${wouldBe} would be billed`;
+    return `Done: ${summary.audited} audited, ${summary.failed} failed${reason}, ${billing}.${limit}`;
 }
 
 export async function execute(raw: ActorInput | null | undefined, overrides: ExecuteOverrides = {}): Promise<string> {
@@ -168,6 +171,7 @@ export async function execute(raw: ActorInput | null | undefined, overrides: Exe
 
     await flushDataset();
     summary.billed = getChargedCounts();
+    summary.wouldBeBilled = getWouldBeChargedCounts();
     summary.averageAuditDurationMs = durations.length > 0 ? Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length) : null;
     const message = statusMessage(summary, lowMemory);
     await Actor.setValue('SUMMARY', summary);
@@ -267,7 +271,7 @@ export async function execute(raw: ActorInput | null | undefined, overrides: Exe
                     field: outcome.field,
                 });
                 const charge = await pushCharged(row as unknown as Record<string, unknown>, event);
-                if (charge.chargedCount < 1) {
+                if (!charge.accepted) {
                     stopForCharge = true;
                     summary.chargeLimitReached = true;
                     summary.notAudited += 1;

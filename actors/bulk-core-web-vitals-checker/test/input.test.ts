@@ -57,6 +57,10 @@ describe('input validation', () => {
         expect(input.engine).toBe('local');
         expect(input.precheckReachability).toBe(true);
     });
+
+    it('defaults the per-URL timeout to 90 seconds', () => {
+        expect(resolveInput({ urls: ['https://example.com'] }).perUrlTimeoutSecs).toBe(90);
+    });
 });
 
 describe('error rows', () => {

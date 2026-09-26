@@ -110,6 +110,8 @@ function opportunities(lhr: LhrLike, maxOpportunities: number): Opportunity[] {
         if (!title) continue;
         const savingsMs = roundMs(typeof audit.details.overallSavingsMs === 'number' ? audit.details.overallSavingsMs : null);
         const savingsBytes = roundMs(typeof audit.details.overallSavingsBytes === 'number' ? audit.details.overallSavingsBytes : null);
+        // Skip passed audits and entries with no measurable saving (e.g. "Initial server response time was short").
+        if (audit.score === 1 || (!(savingsMs && savingsMs > 0) && !(savingsBytes && savingsBytes > 0))) continue;
         found.push({ id, title, savingsMs, savingsBytes });
     }
     found.sort((a, b) => (b.savingsMs ?? -1) - (a.savingsMs ?? -1) || a.id.localeCompare(b.id));
@@ -171,6 +173,7 @@ export function normalizeLighthouseResult(args: {
         benchmarkIndex: typeof benchmark === 'number' && Number.isFinite(benchmark) ? Math.round(benchmark) : null,
         auditDurationMs: Math.max(0, Math.round(args.auditDurationMs)),
         runWarnings: warnings(args.lhr, httpStatus, Boolean(field?.originFallback)),
+        // pushCharged overwrites this: true only when Actor.charge billed the row.
         charged: true,
         errorCode: null,
         errorMessage: null,

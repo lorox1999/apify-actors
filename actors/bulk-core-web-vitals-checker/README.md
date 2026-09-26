@@ -16,7 +16,7 @@ Each successful row includes Performance, Accessibility, Best Practices and SEO 
 
 ### Top fixes ranked by estimated savings
 
-Up to N Lighthouse opportunities are included, sorted by estimated time saved. Each fix has an id, a title and numeric savings only. The Actor does not return screenshots, HTML reports, DOM snippets or the full Lighthouse JSON.
+Up to N Lighthouse opportunities are included, sorted by estimated time saved. Passed audits and fixes with zero estimated savings are left out. Each fix has an id, a title and numeric savings only. The Actor does not return screenshots, HTML reports, DOM snippets or the full Lighthouse JSON.
 
 ### Optional: your own PageSpeed Insights API key for field data
 
@@ -26,7 +26,7 @@ Typical uses: a page speed checker before a release, a bulk pagespeed test of a 
 
 ## How to check Core Web Vitals in bulk
 
-1. Open Bulk Core Web Vitals Checker and keep the default 4096 MB memory for local Lighthouse.
+1. Open Bulk Core Web Vitals Checker. The default run memory is 4096 MB, which local Lighthouse needs. If you use PageSpeed Insights, set the run memory to 1 GB to cut cost.
 2. Paste URLs, or choose one of your datasets and the field that holds the URL (default `url`).
 3. Choose the device and the Lighthouse categories, then start the run.
 4. Open the Core Web Vitals table and export CSV, Excel or JSON.
@@ -44,9 +44,9 @@ Call the same input from the Apify API, or schedule a weekly run from the Apify 
 | Device | Mobile, desktop, or mobile + desktop. Both devices are two audits. |
 | Lighthouse categories | Performance, Accessibility, Best practices, SEO. |
 | Top improvement suggestions per page | How many fixes to keep. Default 5. |
-| Audit engine | Local Lighthouse (no API key) or PageSpeed Insights API (your own key). |
+| Audit engine | Local Lighthouse (no API key) or PageSpeed Insights API (your own key). For PageSpeed Insights, set the run memory to 1 GB to cut cost. Local mode still needs 4096 MB. |
 | Your PageSpeed Insights API key | Secret. Used only for this run's requests when the engine is PageSpeed Insights. |
-| Timeout per audit (seconds) | Default 60. Audits that exceed it are `TIMEOUT` and are not billed. |
+| Timeout per audit (seconds) | Default 90. Audits that exceed it are `TIMEOUT` and are not billed. |
 | Retries per failed audit | Extra attempts after a timeout or a Chrome crash. Default 1. |
 | Pre-check that URLs respond | Skip DNS failures and HTTP 4xx/5xx before launching Lighthouse. Those rows are free. |
 
@@ -101,7 +101,9 @@ One row per URL and device. Views in the output schema: **Core Web Vitals**, **F
 
 Failed audits are rows too, with `status` `error`, `charged` false, and an `errorCode` such as `DNS_ERROR`, `UNREACHABLE`, `HTTP_4XX_PRECHECK`, `HTTP_5XX_PRECHECK`, `TIMEOUT`, `CHROME_CRASH`, `BLOCKED_BY_ROBOTS`, `LIGHTHOUSE_ERROR` or `LOW_MEMORY_FOR_LIGHTHOUSE`.
 
-The key-value record `SUMMARY` has audited, failed (grouped by error code), billed counts and the average audit duration.
+`charged` is true only when the run uses pay-per-event pricing and `Actor.charge` billed that audit. On a run that is not pay-per-event, successful rows are still written with `charged` false.
+
+The key-value record `SUMMARY` has audited, failed (grouped by error code), `billed` (events actually charged), `wouldBeBilled` (accepted audits, including unmetered runs where nothing is billed) and the average audit duration.
 
 ## How much does a bulk Lighthouse audit cost?
 
@@ -138,11 +140,11 @@ Lab data is this run's Lighthouse measurement (LCP, CLS, TBT, FCP, Speed Index).
 
 ### How many URLs can I audit per run, and how long does it take?
 
-The input cap is 10,000 URLs. Local audits are sequential, so a long list should be split or scheduled. Plan on roughly one audit per minute until you measure your own URLs, and keep a single run to a few hundred URLs. The per-URL timeout defaults to 60 seconds.
+The input cap is 10,000 URLs. Local audits are sequential, so a long list should be split or scheduled. Plan on roughly one audit per minute until you measure your own URLs, and keep a single run to a few hundred URLs. The per-URL timeout defaults to 90 seconds.
 
 ### Which memory setting should I use?
 
-Use **4096 MB** for local Lighthouse. Below that the Actor does not start Chrome and every row is `LOW_MEMORY_FOR_LIGHTHOUSE` (not billed). PageSpeed Insights mode only makes HTTP calls and can run at 1024 MB. You can raise local runs to 8192 MB. Do not run several Lighthouse audits at once on the same machine; this Actor does not.
+The Actor default is **4096 MB**, and local Lighthouse requires at least that. Below 4096 MB the Actor does not start Chrome and every row is `LOW_MEMORY_FOR_LIGHTHOUSE` (not billed). PageSpeed Insights mode only makes HTTP calls. Set that run's memory to **1 GB** to cut cost. You can raise local runs to 8192 MB. Do not run several Lighthouse audits at once on the same machine; this Actor does not.
 
 ### Can I audit pages behind a login?
 

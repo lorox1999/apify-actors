@@ -35,8 +35,20 @@ describe('charging', () => {
         await flushDataset();
         expect(pushData).toHaveBeenCalledWith([{ recordType: 'url' }]);
         expect(pushData.mock.calls[0]).toHaveLength(1);
-        expect(outcome).toEqual({ chargedCount: 1, limitReached: false });
+        expect(outcome).toEqual({ chargedCount: 1, wouldBeChargedCount: 1, accepted: true, limitReached: false });
         expect(getChargedCounts()).toEqual({ 'url-extracted': 1 });
+    });
+
+    it('does not push a row when Actor.charge bills nothing', async () => {
+        charge.mockResolvedValue({ chargedCount: 0, eventChargeLimitReached: true, chargeableWithinLimit: {} });
+        const { pushCharged, flushDataset } = await import('../src/charging.js');
+        const row = { recordType: 'audit', charged: true };
+        const outcome = await pushCharged(row, 'url-audited-local');
+        await flushDataset();
+        expect(charge).toHaveBeenCalledOnce();
+        expect(pushData).not.toHaveBeenCalled();
+        expect(row.charged).toBe(false);
+        expect(outcome).toEqual({ chargedCount: 0, wouldBeChargedCount: 0, accepted: false, limitReached: true });
     });
 
     it('does not push a row when the charge limit is already reached', async () => {
@@ -89,7 +101,7 @@ describe('charging', () => {
         const { chargeExtra, resetChargedCounts } = await import('../src/charging.js');
         resetChargedCounts();
         const outcome = await chargeExtra('status-checked', 2);
-        expect(outcome).toEqual({ chargedCount: 0, limitReached: true });
+        expect(outcome).toEqual({ chargedCount: 0, wouldBeChargedCount: 0, accepted: false, limitReached: true });
         expect(charge).not.toHaveBeenCalled();
     });
 
@@ -101,14 +113,34 @@ describe('charging', () => {
 
     it('writes rows unmetered when the run does not use pay-per-event pricing', async () => {
         getChargingManager.mockReturnValue({ getPricingInfo: () => ({ isPayPerEvent: false }) });
-        const { pushCharged, chargeExtra, flushDataset, getChargedCounts } = await import('../src/charging.js');
-        const outcome = await pushCharged({ recordType: 'url' }, 'url-extracted');
+        const { pushCharged, chargeExtra, flushDataset, getChargedCounts, getWouldBeChargedCounts } = await import('../src/charging.js');
+        const row = { recordType: 'url', charged: true };
+        const outcome = await pushCharged(row, 'url-extracted');
         await flushDataset();
-        expect(outcome).toEqual({ chargedCount: 1, limitReached: false });
-        expect(pushData).toHaveBeenCalledWith([{ recordType: 'url' }]);
+        expect(outcome).toEqual({ chargedCount: 0, wouldBeChargedCount: 1, accepted: true, limitReached: false });
+        expect(pushData).toHaveBeenCalledWith([{ recordType: 'url', charged: false }]);
         expect(charge).not.toHaveBeenCalled();
-        expect(await chargeExtra('site-compared', 1)).toEqual({ chargedCount: 1, limitReached: false });
-        expect(getChargedCounts()).toEqual({ 'url-extracted': 1, 'site-compared': 1 });
+        expect(await chargeExtra('site-compared', 1)).toEqual({
+            chargedCount: 0,
+            wouldBeChargedCount: 1,
+            accepted: true,
+            limitReached: false,
+        });
+        expect(getChargedCounts()).toEqual({});
+        expect(getWouldBeChargedCounts()).toEqual({ 'url-extracted': 1, 'site-compared': 1 });
+    });
+
+    it('sets charged true only after Actor.charge bills the row', async () => {
+        charge.mockResolvedValue({ chargedCount: 1, eventChargeLimitReached: false, chargeableWithinLimit: {} });
+        const { pushCharged, flushDataset, getChargedCounts, getWouldBeChargedCounts } = await import('../src/charging.js');
+        const row = { recordType: 'audit', charged: false };
+        const outcome = await pushCharged(row, 'url-audited-local');
+        await flushDataset();
+        expect(outcome.accepted).toBe(true);
+        expect(outcome.chargedCount).toBe(1);
+        expect(pushData).toHaveBeenCalledWith([{ recordType: 'audit', charged: true }]);
+        expect(getChargedCounts()).toEqual({ 'url-audited-local': 1 });
+        expect(getWouldBeChargedCounts()).toEqual({ 'url-audited-local': 1 });
     });
 
     it('flushes dataset rows in batches of 500 and stops at the charge limit', async () => {

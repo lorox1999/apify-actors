@@ -69,6 +69,44 @@ describe('normalize Lighthouse results', () => {
         expect(row.runWarnings?.[0]?.length).toBeLessThanOrEqual(300);
     });
 
+    it('skips passed audits and opportunities with zero estimated savings', () => {
+        const lhr = load('lhr-ok.json');
+        lhr.audits = {
+            ...lhr.audits,
+            'passed-with-savings': {
+                id: 'passed-with-savings',
+                title: 'Initial server response time was short',
+                score: 1,
+                details: { type: 'opportunity', overallSavingsMs: 20, overallSavingsBytes: 100 },
+            },
+            'zero-savings': {
+                id: 'zero-savings',
+                title: 'Minify CSS',
+                score: 0.4,
+                details: { type: 'opportunity', overallSavingsMs: 0, overallSavingsBytes: 0 },
+            },
+            'bytes-only': {
+                id: 'bytes-only',
+                title: 'Reduce unused CSS',
+                score: 0,
+                details: { type: 'opportunity', overallSavingsBytes: 800 },
+            },
+            'time-only': {
+                id: 'time-only',
+                title: 'Preload key requests',
+                score: null,
+                details: { type: 'opportunity', overallSavingsMs: 40 },
+            },
+        };
+        const row = normalizeLighthouseResult({ ...base, categories: [...base.categories], lhr });
+        expect(row.topOpportunities?.map((item) => item.id)).toEqual([
+            'render-blocking-resources',
+            'unused-javascript',
+            'time-only',
+            'bytes-only',
+        ]);
+    });
+
     it('rates the Core Web Vitals boundaries', () => {
         const lhr = load('lhr-ok.json');
         lhr.audits = {

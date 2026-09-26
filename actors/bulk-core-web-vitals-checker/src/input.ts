@@ -115,7 +115,7 @@ export function resolveInput(raw: ActorInput | null | undefined): ResolvedInput 
         maxOpportunities: clampInt(raw?.maxOpportunities, 5, 0, 20),
         engine,
         ...(psiApiKey ? { psiApiKey } : {}),
-        perUrlTimeoutSecs: clampInt(raw?.perUrlTimeoutSecs, 60, 20, 180),
+        perUrlTimeoutSecs: clampInt(raw?.perUrlTimeoutSecs, 90, 20, 180),
         retries: clampInt(raw?.retries, 1, 0, 2),
         precheckReachability: raw?.precheckReachability !== false,
     };

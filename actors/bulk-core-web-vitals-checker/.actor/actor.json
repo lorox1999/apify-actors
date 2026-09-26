@@ -14,5 +14,5 @@
   "output": "./output_schema.json",
   "minMemoryMbytes": 1024,
   "maxMemoryMbytes": 8192,
-  "defaultMemoryMbytes": "equalText(get(input, 'engine', 'local'), 'psi') ? 1024 : 4096"
+  "defaultMemoryMbytes": 4096
 }

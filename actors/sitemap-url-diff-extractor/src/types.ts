@@ -86,6 +86,8 @@ export interface SiteSummary {
     partial: boolean;
     failedSitemapFiles: number;
     chargedEvents: Record<string, number>;
+    /** Events accepted as billable work. Equals `chargedEvents` on pay-per-event runs; higher when the run is unmetered. */
+    wouldBeChargedEvents: Record<string, number>;
     warnings: string[];
     statusChecksSkipped: number;
 }
