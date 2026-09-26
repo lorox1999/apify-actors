@@ -40,4 +40,12 @@ describe('errors', () => {
         expect(errorMessage('SITEMAP_HTTP_403').toLowerCase()).toContain('403');
         expect(errorMessage('BLOCKED_BY_ROBOTS').toLowerCase()).toContain('robots.txt');
     });
+
+    it('includes Core Web Vitals audit failure codes', () => {
+        for (const code of ['NO_URLS', 'INVALID_URL', 'LOW_MEMORY_FOR_LIGHTHOUSE', 'UNREACHABLE', 'HTTP_4XX_PRECHECK', 'HTTP_5XX_PRECHECK', 'CHROME_CRASH', 'LIGHTHOUSE_ERROR', 'PSI_KEY_MISSING', 'PSI_KEY_INVALID', 'PSI_RATE_LIMITED', 'PSI_ERROR'] as const) {
+            expect(ERROR_CODES).toContain(code);
+            expect(errorMessage(code).length).toBeGreaterThan(10);
+        }
+        expect(errorMessage('HTTP_4XX_PRECHECK').toLowerCase()).toContain('not bypassed');
+    });
 });

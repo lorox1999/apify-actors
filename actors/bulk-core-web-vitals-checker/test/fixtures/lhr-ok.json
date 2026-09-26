@@ -1,0 +1,68 @@
+{
+  "lighthouseVersion": "13.5.0",
+  "finalUrl": "https://example.com/page#section",
+  "requestedUrl": "https://example.com/page",
+  "runWarnings": [
+    "The page loaded too slowly to finish within the time limit.",
+    "Warning two.",
+    "Warning three.",
+    "Warning four.",
+    "Warning five.",
+    "Warning six should be dropped."
+  ],
+  "environment": { "benchmarkIndex": 1650.4 },
+  "categories": {
+    "performance": { "score": 0.92 },
+    "accessibility": { "score": 0.96 },
+    "best-practices": { "score": 1 },
+    "seo": { "score": 0.9 }
+  },
+  "audits": {
+    "largest-contentful-paint": {
+      "id": "largest-contentful-paint",
+      "title": "Largest Contentful Paint",
+      "numericValue": 812.2,
+      "details": {
+        "type": "debugdata",
+        "items": [{ "snippet": "<div>secret.person@example.com</div>", "nodeLabel": "Pat Exampleperson" }]
+      }
+    },
+    "first-contentful-paint": { "id": "first-contentful-paint", "numericValue": 400.4 },
+    "cumulative-layout-shift": { "id": "cumulative-layout-shift", "numericValue": 0.04219 },
+    "total-blocking-time": { "id": "total-blocking-time", "numericValue": 80 },
+    "speed-index": { "id": "speed-index", "numericValue": 900.6 },
+    "server-response-time": { "id": "server-response-time", "numericValue": 35.2 },
+    "total-byte-weight": { "id": "total-byte-weight", "numericValue": 1256.7 },
+    "network-requests": {
+      "id": "network-requests",
+      "numericValue": 99,
+      "details": {
+        "type": "table",
+        "items": [
+          { "url": "https://example.com/page", "statusCode": 200, "resourceType": "Document", "snippet": "secret.person@example.com" },
+          { "url": "https://example.com/app.js", "statusCode": 200 }
+        ]
+      }
+    },
+    "render-blocking-resources": {
+      "id": "render-blocking-resources",
+      "title": "Eliminate render-blocking resources",
+      "details": {
+        "type": "opportunity",
+        "overallSavingsMs": 300,
+        "overallSavingsBytes": 12000,
+        "items": [{ "url": "https://cdn.example/secret.person@example.com/app.js", "nodeLabel": "Pat Exampleperson", "snippet": "<link>" }]
+      }
+    },
+    "unused-javascript": {
+      "id": "unused-javascript",
+      "title": "Reduce unused JavaScript",
+      "details": { "type": "opportunity", "overallSavingsMs": 150, "overallSavingsBytes": 4000, "items": [] }
+    },
+    "final-screenshot": {
+      "id": "final-screenshot",
+      "title": "Screenshot",
+      "details": { "type": "screenshot", "items": [{ "data": "secret.person@example.com" }] }
+    }
+  }
+}
