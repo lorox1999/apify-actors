@@ -7,6 +7,7 @@ import {
     createSafeLogger,
     flushDataset,
     getChargedCounts,
+    getWouldBeChargedCounts,
     isPrivateHost,
     isUnmetered,
     pushCharged,
@@ -14,6 +15,7 @@ import {
     redactHttpUrl,
     redactLooseText,
     resetChargedCounts,
+    type ChargeOutcome,
     type CheckStatus,
 } from '@apify-actors/common';
 
@@ -154,6 +156,16 @@ function originOf(url: string): { origin: string; host: string } | null {
     return { origin: parsed.origin, host: parsed.hostname.toLowerCase() };
 }
 
+/** Schema maximum: a run never parses more than this many pages across every start site. */
+function maxPagesRunCap(): number {
+    const raw = process.env.A3B_TEST_MAX_PAGES_TOTAL;
+    if (raw !== undefined && raw !== '') {
+        const n = Number(raw);
+        if (Number.isFinite(n)) return Math.max(0, Math.trunc(n));
+    }
+    return 100_000;
+}
+
 function deadlineMs(): number | null {
     const endRaw = process.env.ACTOR_TIMEOUT_AT;
     if (!endRaw) return null;
@@ -239,8 +251,6 @@ export async function execute(input: ActorInput | null): Promise<string> {
     let datasetRowsIgnored = saved?.datasetRowsIgnored ?? 0;
     let duplicateInputs = saved?.duplicateInputs ?? 0;
     let unbilledRowsCapped = saved?.unbilledRowsCapped ?? 0;
-    let wouldLinks = saved?.wouldLinks ?? 0;
-    let wouldPages = saved?.wouldPages ?? 0;
     let pendingPages = saved?.pendingPages ?? 0;
     let reservedLinks = 0;
     let migrating = false;
@@ -285,8 +295,8 @@ export async function execute(input: ActorInput | null): Promise<string> {
             datasetRowsIgnored,
             duplicateInputs,
             unbilledRowsCapped,
-            wouldLinks,
-            wouldPages,
+            wouldLinks: getWouldBeChargedCounts()['link-checked'] ?? 0,
+            wouldPages: getWouldBeChargedCounts()['page-crawled'] ?? 0,
             pendingPages,
             sites: [...sites.values()],
         };
@@ -304,7 +314,7 @@ export async function execute(input: ActorInput | null): Promise<string> {
     Actor.on('persistState', onPersist);
     const progress = setInterval(() => {
         const counts = countStatuses(links);
-        log.info(`Checked ${counts.done.toLocaleString('en-US')} / ${links.size.toLocaleString('en-US')} links (broken ${counts.broken}, unverified ${counts.unverified}), crawled ${totalPages(sites).toLocaleString('en-US')} / ${resolved.maxPages.toLocaleString('en-US')} pages`);
+        log.info(`Checked ${counts.done.toLocaleString('en-US')} / ${links.size.toLocaleString('en-US')} links (broken ${counts.broken}, unverified ${counts.unverified}), crawled ${totalPages(sites).toLocaleString('en-US')} pages (max ${resolved.maxPagesPerSite.toLocaleString('en-US')} per site)`);
     }, 30_000);
     progress.unref?.();
 
@@ -331,7 +341,7 @@ export async function execute(input: ActorInput | null): Promise<string> {
         datasetRowsIgnored += loaded.rowsIgnored;
         if (loaded.error) {
             await pushFree(errorRow('unknown', loaded.error.code, loaded.error.message, loaded.error.detail));
-            await finish(resolved, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, wouldLinks, wouldPages, pricing, true);
+            await finish(resolved, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, true);
             return loaded.error.message;
         }
         for (const row of loaded.invalid) {
@@ -341,7 +351,7 @@ export async function execute(input: ActorInput | null): Promise<string> {
         if (loaded.urls.length === 0 && links.size === 0) {
             const message = errorMessage('NO_VALID_INPUT') ?? 'No valid URLs';
             await pushFree(errorRow('unknown', 'NO_VALID_INPUT', message, null));
-            await finish(resolved, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, wouldLinks, wouldPages, pricing, true);
+            await finish(resolved, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, true);
             return message;
         }
 
@@ -396,19 +406,15 @@ export async function execute(input: ActorInput | null): Promise<string> {
                     };
                     links.set(canonical, rec);
                     if (!result.classification.billable) reservedLinks = Math.max(0, reservedLinks - 1);
-                    const before = getChargedCounts()['link-checked'] ?? 0;
-                    await writeLink(resolved, rec, written, charged, pricing, () => {
+                    const outcome = await writeLink(resolved, rec, written, charged, () => {
                         unbilledWritten += 1;
                         return unbilledWritten <= unbilledCap();
                     }, () => {
                         unbilledRowsCapped += 1;
                     });
-                    const after = getChargedCounts()['link-checked'] ?? 0;
-                    if (after > before) reservedLinks = Math.max(0, reservedLinks - (after - before));
-                    else if (result.classification.billable && !pricing.metered) reservedLinks = Math.max(0, reservedLinks - 1);
+                    if (result.classification.billable && outcome?.accepted) reservedLinks = Math.max(0, reservedLinks - 1);
                     await applyRobots(site, robots, canonical);
-                    if (!pricing.metered && result.classification.billable) wouldLinks += 1;
-                    if (pricing.metered && after === before && result.classification.billable && shouldWrite(result.classification.checkStatus, resolved.outputMode)) {
+                    if (outcome?.limitReached) {
                         limitHit.current = true;
                         stopReason = stopReason ?? 'CHARGE_LIMIT_REACHED';
                         return;
@@ -447,14 +453,8 @@ export async function execute(input: ActorInput | null): Promise<string> {
                 takePendingPages: async () => {
                     if (pendingPages <= 0) return;
                     const n = pendingPages;
-                    if (!pricing.metered) {
-                        wouldPages += n;
-                        pendingPages = 0;
-                        return;
-                    }
                     const outcome = await chargeExtra('page-crawled', n);
-                    pendingPages = n - outcome.chargedCount;
-                    if (outcome.chargedCount > 0) wouldPages += outcome.chargedCount;
+                    pendingPages = n - outcome.wouldBeChargedCount;
                     if (outcome.limitReached) stopReason = stopReason ?? 'CHARGE_LIMIT_REACHED';
                 },
                 shouldStop: () => migrating || timedOut() || stopReason === 'CHARGE_LIMIT_REACHED',
@@ -469,20 +469,11 @@ export async function execute(input: ActorInput | null): Promise<string> {
                 minDelay: resolved.minDelayPerHostMs,
             });
             if (pendingPages > 0) {
-                if (!pricing.metered) {
-                    wouldPages += pendingPages;
-                    pendingPages = 0;
-                } else {
-                    const outcome = await chargeExtra('page-crawled', pendingPages);
-                    if (outcome.chargedCount > 0) wouldPages += outcome.chargedCount;
-                    pendingPages = Math.max(0, pendingPages - outcome.chargedCount);
-                    if (outcome.limitReached) stopReason = stopReason ?? 'CHARGE_LIMIT_REACHED';
-                }
+                const outcome = await chargeExtra('page-crawled', pendingPages);
+                pendingPages = Math.max(0, pendingPages - outcome.wouldBeChargedCount);
+                if (outcome.limitReached) stopReason = stopReason ?? 'CHARGE_LIMIT_REACHED';
             }
-            for (const link of links.values()) {
-                if (link.result?.classification.billable) wouldLinks += 1;
-            }
-            await writeCrawl(resolved, links, pages, sites, written, charged, pricing, () => {
+            await writeCrawl(resolved, links, pages, sites, written, charged, () => {
                 unbilledWritten += 1;
                 return unbilledWritten <= unbilledCap();
             }, () => {
@@ -498,7 +489,7 @@ export async function execute(input: ActorInput | null): Promise<string> {
             return message;
         }
 
-        const message = await finish(resolved, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, wouldLinks, wouldPages, pricing, true);
+        const message = await finish(resolved, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, true);
         await Actor.setValue('STATE', null);
         return message;
     } finally {
@@ -622,40 +613,42 @@ async function writeLink(
     link: LinkRec,
     written: Set<string>,
     charged: Set<string>,
-    pricing: Pricing,
     allowUnbilled: () => boolean,
     capUnbilled: () => void,
-): Promise<void> {
-    if (!link.result || link.result.discarded || written.has(link.url)) return;
+): Promise<ChargeOutcome | null> {
+    if (!link.result || link.result.discarded || written.has(link.url)) return null;
     const status = link.result.classification.checkStatus;
     const billable = link.result.classification.billable && !charged.has(link.url);
     const write = shouldWrite(status, input.outputMode);
-    if (write) {
-        const actuallyCharged = billable && pricing.metered;
-        const row = linkToRow(link, actuallyCharged);
-        if (billable && pricing.metered) {
-            const outcome = await pushCharged(row, 'link-checked');
-            if (outcome.chargedCount > 0) {
-                charged.add(link.url);
-                written.add(link.url);
-            }
-            return;
+    if (write && billable) {
+        const row = linkToRow(link, true);
+        const outcome = await pushCharged(row, 'link-checked');
+        if (outcome.accepted) {
+            charged.add(link.url);
+            written.add(link.url);
         }
-        if (!billable && !allowUnbilled()) {
+        return outcome;
+    }
+    if (write) {
+        if (!allowUnbilled()) {
             capUnbilled();
             written.add(link.url);
-            return;
+            return null;
         }
-        row.charged = false;
-        await pushFree(row);
+        await pushFree(linkToRow(link, false));
         written.add(link.url);
-        return;
+        return null;
     }
-    if (billable && pricing.metered) {
+    if (billable) {
         const outcome = await chargeExtra('link-checked', 1);
-        if (outcome.chargedCount > 0) charged.add(link.url);
+        if (outcome.accepted) {
+            charged.add(link.url);
+            written.add(link.url);
+        }
+        return outcome;
     }
     written.add(link.url);
+    return null;
 }
 
 function shouldWrite(status: CheckStatus, mode: ResolvedInput['outputMode']): boolean {
@@ -671,7 +664,6 @@ async function writeCrawl(
     sites: Map<string, SiteAcc>,
     written: Set<string>,
     charged: Set<string>,
-    pricing: Pricing,
     allowUnbilled: () => boolean,
     capUnbilled: () => void,
 ): Promise<void> {
@@ -684,7 +676,7 @@ async function writeCrawl(
         return a.url.localeCompare(b.url);
     });
     for (const link of ordered) {
-        await writeLink(input, link, written, charged, pricing, allowUnbilled, capUnbilled);
+        await writeLink(input, link, written, charged, allowUnbilled, capUnbilled);
     }
     for (const page of pages) {
         await pushFree(pageToRow(page, links));
@@ -773,13 +765,10 @@ async function finish(
     datasetRowsIgnored: number,
     duplicateInputs: number,
     unbilledRowsCapped: number,
-    wouldLinks: number,
-    wouldPages: number,
-    pricing: Pricing,
     deleteState: boolean,
 ): Promise<string> {
     await flushDataset();
-    const summary = buildSummary(input, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped, wouldLinks, wouldPages, pricing);
+    const summary = buildSummary(input, sites, links, pages, stopReason, datasetRowsRead, datasetRowsIgnored, duplicateInputs, unbilledRowsCapped);
     const csvRows = csvFromLinks(links, input.maxSourcesPerLink);
     const csv = buildBrokenLinksCsv(csvRows);
     summary.csvTruncated = csv.truncated;
@@ -836,9 +825,6 @@ function buildSummary(
     datasetRowsIgnored: number,
     duplicateInputs: number,
     unbilledRowsCapped: number,
-    wouldLinks: number,
-    wouldPages: number,
-    pricing: Pricing,
 ): Record<string, unknown> {
     const siteRows = [...sites.values()].map((site) => {
         const mine = [...links.values()].filter((link) => link.site === site.site && link.result && !link.result.discarded);
@@ -874,18 +860,14 @@ function buildSummary(
         };
     });
     const counts = getChargedCounts();
-    let derivedLinks = 0;
-    for (const link of links.values()) {
-        if (link.result && !link.result.discarded && link.result.classification.billable) derivedLinks += 1;
-    }
-    const derivedPages = countCrawled(sites);
+    const wouldBe = getWouldBeChargedCounts();
     const billed = {
-        'link-checked': pricing.metered ? (counts['link-checked'] ?? 0) : 0,
-        'page-crawled': pricing.metered ? (counts['page-crawled'] ?? 0) : 0,
+        'link-checked': counts['link-checked'] ?? 0,
+        'page-crawled': counts['page-crawled'] ?? 0,
     };
     const wouldBeBilled = {
-        'link-checked': Math.max(derivedLinks, wouldLinks),
-        'page-crawled': Math.max(derivedPages, wouldPages),
+        'link-checked': wouldBe['link-checked'] ?? 0,
+        'page-crawled': wouldBe['page-crawled'] ?? 0,
     };
     return {
         mode: input.mode,
@@ -900,12 +882,6 @@ function buildSummary(
         billed,
         wouldBeBilled,
     };
-}
-
-function countCrawled(sites: Map<string, SiteAcc>): number {
-    let n = 0;
-    for (const site of sites.values()) n += site.pagesCrawled;
-    return n;
 }
 
 function baseSummary(mode: 'crawl' | 'list', stopReason: string | null): Record<string, unknown> {
@@ -931,15 +907,19 @@ function doneMessage(summary: Record<string, unknown>): string {
     let broken = 0;
     let restricted = 0;
     let redirects = 0;
+    let skipped = 0;
+    let unverified = 0;
     let notChecked = 0;
     const reasons = new Set<string>();
     for (const site of sites) {
         pages += Number(site.pagesCrawled ?? 0);
         const by = site.byStatus as Record<string, number>;
-        checked += Number(site.linksChecked ?? 0);
+        checked += (by?.ok ?? 0) + (by?.redirect ?? 0) + (by?.broken ?? 0) + (by?.restricted ?? 0);
         broken += by?.broken ?? 0;
         restricted += by?.restricted ?? 0;
         redirects += by?.redirect ?? 0;
+        skipped += by?.skipped ?? 0;
+        unverified += by?.unverified ?? 0;
         const missed = site.notChecked as Record<string, number>;
         for (const [key, value] of Object.entries(missed ?? {})) {
             if (value > 0) {
@@ -949,7 +929,9 @@ function doneMessage(summary: Record<string, unknown>): string {
         }
     }
     const reason = reasons.size > 0 ? ` (${[...reasons].join(', ')})` : '';
-    return `Done: ${pages} pages, ${checked} links checked (${broken} broken, ${restricted} restricted, ${redirects} redirects), ${notChecked} not checked${reason}`;
+    const tail = `${checked} links checked (${broken} broken, ${restricted} restricted, ${redirects} redirects), ${skipped} skipped, ${unverified} unverified, ${notChecked} not checked${reason}`;
+    if (summary.mode === 'list') return `Done: ${tail}`;
+    return `Done: ${pages} pages, ${tail}`;
 }
 
 function reasonLabel(key: string): string {
@@ -1019,13 +1001,20 @@ async function crawl(args: CrawlArgs): Promise<void> {
         queuedPages.add(link.url);
         queue.push({ url: link.url, depth: args.resolved.maxDepth + 1, site: link.site, asLink: true, seq: seq++ });
     }
-    let pagesStarted = args.pages.length;
+    const pagesStartedBySite = new Map<string, number>();
+    for (const page of args.pages) {
+        pagesStartedBySite.set(page.site, (pagesStartedBySite.get(page.site) ?? 0) + 1);
+    }
+    let totalStarted = args.pages.length;
     let inFlight = 0;
     const workers = Math.max(1, Math.min(args.resolved.maxConcurrency, 8));
 
     const handle = async (task: { url: string; depth: number; site: string; asLink: boolean; seq: number }): Promise<void> => {
         const site = args.sites.get(task.site) ?? siteFor(args.sites, task.site, new URL(task.url).hostname, args.minDelay);
-        const crawlThis = task.depth <= args.resolved.maxDepth && pagesStarted < args.resolved.maxPages;
+        const perSiteStarted = pagesStartedBySite.get(task.site) ?? 0;
+        const crawlThis = task.depth <= args.resolved.maxDepth
+            && perSiteStarted < args.resolved.maxPagesPerSite
+            && totalStarted < maxPagesRunCap();
         const asLink = task.asLink || args.links.has(task.url);
         if (!asLink && !crawlThis) {
             args.noteStop('MAX_PAGES_REACHED');
@@ -1041,7 +1030,10 @@ async function crawl(args: CrawlArgs): Promise<void> {
             args.bumpNot(site, 'CHARGE_LIMIT_REACHED');
             return;
         }
-        if (crawlThis) pagesStarted += 1;
+        if (crawlThis) {
+            pagesStartedBySite.set(task.site, perSiteStarted + 1);
+            totalStarted += 1;
+        }
         const result = await args.checker.check(task.url, { readBody: crawlThis });
         await applyRobots(site, args.robots, task.url);
         if (result.discarded) {

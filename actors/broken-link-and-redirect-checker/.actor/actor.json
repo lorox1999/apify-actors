@@ -2,7 +2,7 @@
   "actorSpecification": 1,
   "name": "broken-link-and-redirect-checker",
   "title": "Broken Link Checker – Site Crawl & Bulk URL Status",
-  "description": "Broken link checker for SEO audits, site migrations and QA. Crawl a website and check every internal and external link, with source page and anchor text, or check a list of URLs in bulk. Get status code, final URL, redirect chain, response time and a clear reason for every failure. No browser, no proxy.",
+  "description": "Broken link checker for SEO audits, site migrations and QA. Crawl a website and check every internal and external link, with source page and anchor text, or check a list of URLs in bulk. Get status code, final URL, redirect chain, response time and a reason for every failure. No browser, no proxy.",
   "version": "0.1",
   "buildTag": "latest",
   "dockerfile": "../Dockerfile",

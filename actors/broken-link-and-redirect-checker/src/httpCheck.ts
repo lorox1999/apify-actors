@@ -184,7 +184,8 @@ export function createChecker(deps: Deps): Checker {
                     errorMessage: errorMessage(blocked.classification.errorCode),
                 });
             }
-            const started = performance.now();
+            // Shifted forward by per-host queue waits so responseTimeMs excludes queueing (spec §5.1).
+            let started = performance.now();
             let method: 'HEAD' | 'GET' = options.readBody || !deps.useHead ? 'GET' : 'HEAD';
             let allowHeadFallback = method === 'HEAD';
             let networkRetryLeft = true;
@@ -221,7 +222,9 @@ export function createChecker(deps: Deps): Checker {
                     const host = hostnameOf(current);
                     let response: Response;
                     try {
+                        const waitStart = performance.now();
                         await deps.scheduler.acquire(host);
+                        started += performance.now() - waitStart;
                         try {
                             if (deps.shutdown.signal.aborted) {
                                 return baseResult(canonical, classifySkip('BLOCKED_BY_ROBOTS'), { discarded: true, classification: { checkStatus: 'skipped', errorCode: null, billable: false }, errorMessage: null });

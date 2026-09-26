@@ -16,7 +16,7 @@ Use crawl mode when you want to find broken links on a website, including a brok
 
 1. Open the Actor and leave **Mode** on `crawl`.
 2. Enter one or more **Start URLs**. `www` and non-`www` are the same site. Turn on **Treat subdomains as internal** only when you want subdomains included.
-3. Set **Max pages to crawl** and **Max crawl depth**. Pages outside those limits are still checked as links, but their HTML is not parsed.
+3. Set **Max pages per site** and **Max crawl depth**. The page cap applies to each start site, not as one shared total. Pages outside those limits are still checked as links, but their HTML is not parsed.
 4. Leave **Check external links** on to check outbound links. External pages are never crawled.
 5. Start the run. Download the dataset (links and pages) and the key-value record `BROKEN_LINKS.csv`.
 
@@ -37,7 +37,7 @@ List mode is a bulk url status checker, a 404 checker, and a redirect chain chec
 Run Sitemap URL Extractor first, then pass its default dataset id to **Load URLs from a dataset**.
 
 - List mode checks each sitemap URL and returns status and redirect chain. That is the bulk http status check.
-- Crawl mode with **Max crawl depth** `0` opens each of those pages (up to **Max pages to crawl**) and checks the links on them. That is how you check every page in a sitemap without following the whole site.
+- Crawl mode with **Max crawl depth** `0` opens each of those pages (up to **Max pages per site**) and checks the links on them. That is how you check every page in a sitemap without following the whole site.
 
 Rows that are not URL rows are ignored and counted in the summary as `datasetRowsIgnored`.
 
@@ -51,7 +51,7 @@ Rows that are not URL rows are ignored and counted in the summary as `datasetRow
 | Load URLs from a dataset (optional) | Dataset id to read. The picker grants read access to that dataset. |
 | URL field in the dataset | Dot path of the URL string. Default `url`. |
 | Max rows to read from the dataset | Cap on rows read from that dataset. |
-| Max pages to crawl | How many HTML pages to parse. Default 100. Prefill 5. |
+| Max pages per site | How many HTML pages to parse on each start site. Default 100. Prefill 5. A run also stops after 100,000 pages in total. |
 | Max crawl depth | Link hops from a start URL. `0` means only the start pages. |
 | Treat subdomains as internal | When off, other subdomains are external. |
 | Check external links | When off, external links are counted as not checked. |
@@ -73,7 +73,7 @@ Rows that are not URL rows are ignored and counted in the summary as `datasetRow
 {
   "mode": "crawl",
   "startUrls": ["https://docs.apify.com/academy"],
-  "maxPages": 5,
+  "maxPagesPerSite": 5,
   "maxLinks": 100
 }
 ```
@@ -179,6 +179,8 @@ Each host has its own concurrency cap and a minimum gap between request starts. 
 
 A page with `nofollow` in meta robots or `X-Robots-Tag` still has its links checked. Those links are not added to the crawl queue.
 
+When the target site's robots.txt disallows a URL, that link is `skipped` (`BLOCKED_BY_ROBOTS`). It is not requested and it is not billed. GitHub disallows many `/blob/` and `/issues/` URLs this way. Those rows are not broken links.
+
 After HTTP 429, or 503 with `Retry-After`, the Actor waits at most 30 seconds, retries once, and then keeps that host at one request at a time. Timeouts, connection resets, and 5xx responses are retried once. There is no proxy and no retry from another address.
 
 HTML is read only for pages that are actually crawled, and only the first 2 MB.
@@ -188,6 +190,10 @@ HTML is read only for pages that are actually crawled, and only the first 2 MB.
 ### Why is a link marked restricted (403) when it works in my browser?
 
 `restricted` means the server answered 401, 403, 407, or 451 to this Actor's HTTP request. Browsers send cookies and a different user agent. The Actor does not reuse your cookies and does not try to look like a browser. A 403 is not reported as a broken link. It is still a completed check, so it is charged once.
+
+### Why are GitHub file and issue links skipped?
+
+GitHub's robots.txt disallows many `/blob/` and `/issues/` URLs. With **Respect robots.txt** on (the default), those links are not requested. The dataset reports them as `skipped` with error code `BLOCKED_BY_ROBOTS`, and they are not billed. A skipped link is not a broken link. Turn **Respect robots.txt** off only when you are allowed to request those URLs; they are then checked and billed like any other link.
 
 ### Why are some external links unverified?
 
@@ -203,7 +209,7 @@ Yes. Create a Schedule and set **Output rows** to `brokenOnly`. The summary stil
 
 ### How do I check every page in my sitemap?
 
-Run a sitemap extractor, then this Actor in crawl mode with **Max crawl depth** `0` and the sitemap dataset selected. Each sitemap URL is opened and the links on that page are checked, up to **Max pages to crawl**.
+Run a sitemap extractor, then this Actor in crawl mode with **Max crawl depth** `0` and the sitemap dataset selected. Each sitemap URL is opened and the links on that page are checked, up to **Max pages per site**.
 
 ### Do I need a proxy or a custom user agent?
 

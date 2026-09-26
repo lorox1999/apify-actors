@@ -74,10 +74,10 @@
       "minimum": 1,
       "maximum": 1000000
     },
-    "maxPages": {
-      "title": "Max pages to crawl",
+    "maxPagesPerSite": {
+      "title": "Max pages per site",
       "type": "integer",
-      "description": "Crawl mode only. Stop reading new pages after this many. Each page that is fetched and parsed is billed as one page-crawled event; pages that fail to load are free.",
+      "description": "Crawl mode only. Stop reading new pages on each start site after this many. The cap is per start site (each start URL's origin), not one shared total. The run also stops after 100,000 pages across all sites. Each page that is fetched and parsed is billed as one page-crawled event; pages that fail to load are free. The older name maxPages is accepted as the same per-site cap.",
       "prefill": 5,
       "default": 100,
       "minimum": 1,

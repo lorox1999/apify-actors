@@ -18,13 +18,17 @@ function readPath(item: Record<string, unknown>, field: string): unknown {
 }
 
 async function datasetIsReadable(id: string): Promise<boolean> {
+    const storage = Configuration.getStorageClient();
+    // Under limited permissions the run token cannot list the user's datasets, but it can read
+    // a dataset passed in the input. Try the direct read first so a failed list() does not hide it.
     try {
-        const storage = Configuration.getStorageClient();
+        if (await storage.dataset(id).get()) return true;
+    } catch {
+        // fall through to the name lookup (local storage)
+    }
+    try {
         const listed = await storage.datasets().list();
-        const items = listed.items ?? [];
-        if (items.some((item) => item.id === id || item.name === id)) return true;
-        const got = await storage.dataset(id).get();
-        return Boolean(got);
+        return (listed.items ?? []).some((item) => item.id === id || item.name === id);
     } catch {
         return false;
     }

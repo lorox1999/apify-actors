@@ -11,7 +11,9 @@ export interface ActorInput {
     urlsDataset?: string;
     urlsDatasetField?: string;
     maxDatasetItems?: number;
+    /** @deprecated Prefer maxPagesPerSite. Accepted as the same per-start-site page cap. */
     maxPages?: number;
+    maxPagesPerSite?: number;
     maxDepth?: number;
     includeSubdomains?: boolean;
     checkExternalLinks?: boolean;
@@ -37,7 +39,7 @@ export interface ResolvedInput {
     urlsDataset?: string;
     urlsDatasetField: string;
     maxDatasetItems: number;
-    maxPages: number;
+    maxPagesPerSite: number;
     maxDepth: number;
     includeSubdomains: boolean;
     checkExternalLinks: boolean;

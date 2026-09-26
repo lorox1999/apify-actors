@@ -48,7 +48,7 @@ export function resolveInput(input: ActorInput | null): ResolvedInput {
         ...(source.urlsDataset ? { urlsDataset: source.urlsDataset } : {}),
         urlsDatasetField: source.urlsDatasetField || 'url',
         maxDatasetItems: clamp(source.maxDatasetItems, 100_000, 1, 1_000_000),
-        maxPages: clamp(source.maxPages, 100, 1, 100_000),
+        maxPagesPerSite: clamp(source.maxPagesPerSite ?? source.maxPages, 100, 1, 100_000),
         maxDepth: clamp(source.maxDepth, 3, 0, 20),
         includeSubdomains: source.includeSubdomains ?? false,
         checkExternalLinks: source.checkExternalLinks ?? true,

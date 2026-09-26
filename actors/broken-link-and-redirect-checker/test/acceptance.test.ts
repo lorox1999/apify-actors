@@ -79,7 +79,8 @@ describe('broken link checker acceptance', () => {
         expect(result.charges['page-crawled'] ?? 0).toBeLessThanOrEqual(5);
         expect(result.charges['link-checked'] ?? 0).toBeLessThanOrEqual(100);
         expect(oneSite(result.summary).robotsTxtFound).toBe(true);
-        expect(result.message).toMatch(/^Done: /);
+        expect(result.message).toMatch(/^Done: \d+ pages, \d+ links checked \(/);
+        expect(result.message).toMatch(/\d+ skipped, \d+ unverified, \d+ not checked/);
         expect(result.summary.stopReason === null || result.summary.stopReason === 'MAX_PAGES_REACHED').toBe(true);
     });
 
@@ -120,6 +121,7 @@ describe('broken link checker acceptance', () => {
         const fiveHundred = fixture.hits.filter((hit) => hit.path === '/500');
         expect(fiveHundred.map((hit) => hit.method)).toEqual(['HEAD', 'GET']);
         expect(result.charges['link-checked']).toBe(6);
+        expect(result.message).toBe('Done: 6 links checked (3 broken, 0 restricted, 2 redirects), 0 skipped, 0 unverified, 0 not checked');
     });
 
     it('A3-03 falls back from HEAD to GET and can skip HEAD', async () => {
@@ -455,6 +457,48 @@ describe('broken link checker acceptance', () => {
         expect(crawled.summary.stopReason).toBe('MAX_PAGES_REACHED');
         expect(crawled.charges['page-crawled']).toBe(20);
         expect(rows(crawled.items, 'link').some((row) => String(row.linkUrl).includes('/ok'))).toBe(true);
+    });
+
+    it('caps pages per start site and keeps a run-wide page cap', async () => {
+        const perSite = await runInput(fast({
+            mode: 'crawl',
+            startUrls: [fixture.url('site.test', '/ok'), fixture.url('ext.test', '/ext-ok')],
+            maxPages: 1,
+            maxDepth: 0,
+            respectRobotsTxt: false,
+            checkExternalLinks: false,
+        }));
+        const perSitePages = rows(perSite.items, 'page');
+        expect(perSitePages).toHaveLength(2);
+        expect(new Set(perSitePages.map((row) => row.site)).size).toBe(2);
+        expect(perSite.charges['page-crawled']).toBe(2);
+        expect(perSite.summary.stopReason).toBeNull();
+
+        const named = await runInput(fast({
+            mode: 'crawl',
+            startUrls: [fixture.url('site.test', '/ok'), fixture.url('ext.test', '/ext-ok')],
+            maxPagesPerSite: 1,
+            maxDepth: 0,
+            respectRobotsTxt: false,
+            checkExternalLinks: false,
+        }));
+        expect(rows(named.items, 'page')).toHaveLength(2);
+
+        process.env.A3B_TEST_MAX_PAGES_TOTAL = '1';
+        try {
+            const capped = await runInput(fast({
+                mode: 'crawl',
+                startUrls: [fixture.url('site.test', '/ok'), fixture.url('ext.test', '/ext-ok')],
+                maxPagesPerSite: 5,
+                maxDepth: 0,
+                respectRobotsTxt: false,
+                checkExternalLinks: false,
+            }));
+            expect(rows(capped.items, 'page')).toHaveLength(1);
+            expect(capped.summary.stopReason).toBe('MAX_PAGES_REACHED');
+        } finally {
+            delete process.env.A3B_TEST_MAX_PAGES_TOTAL;
+        }
     });
 
     it('A3-15 accounts for every discovered link when caps and filters apply', async () => {
