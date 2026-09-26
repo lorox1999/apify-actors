@@ -1,0 +1,23 @@
+{
+    "actorSpecification": 1,
+    "fields": {
+        "type": "object",
+        "properties": {
+            "url": { "type": "string" },
+            "title": { "type": "string" },
+            "headings": { "type": "array", "items": { "type": "string" } },
+            "links": { "type": "integer" }
+        }
+    },
+    "views": {
+        "overview": {
+            "title": "Overview",
+            "transformation": {
+                "fields": ["url", "title", "links"]
+            },
+            "display": {
+                "component": "table"
+            }
+        }
+    }
+}

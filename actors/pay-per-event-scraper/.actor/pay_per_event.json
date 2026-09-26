@@ -1,0 +1,13 @@
+{
+    "actorSpecification": 1,
+    "pricingModel": "PAY_PER_EVENT",
+    "pricingPerEvent": {
+        "actorChargeEvents": {
+            "page-scraped": {
+                "eventTitle": "Page scraped",
+                "eventDescription": "Charged once for each page that is successfully scraped.",
+                "eventPriceUsd": 0.001
+            }
+        }
+    }
+}

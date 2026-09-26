@@ -1,0 +1,22 @@
+{
+  "name": "pay-per-event-scraper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Example Apify pay-per-event Actor: scrapes page titles and charges per scraped page.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "apify": "^3.4.2",
+    "crawlee": "^3.13.0"
+  },
+  "devDependencies": {
+    "cheerio": "^1.0.0"
+  }
+}

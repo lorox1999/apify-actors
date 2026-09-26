@@ -1,0 +1,15 @@
+{
+    "actorSpecification": 1,
+    "name": "pay-per-event-scraper",
+    "title": "Pay-per-event Scraper",
+    "description": "Scrapes page titles and headings and charges once per scraped page (pay-per-event).",
+    "version": "0.1",
+    "meta": {
+        "templateId": "js-crawlee-cheerio"
+    },
+    "input": "./input_schema.json",
+    "dockerfile": "./Dockerfile",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    }
+}
