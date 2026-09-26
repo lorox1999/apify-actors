@@ -1,0 +1,184 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "type": "object",
+    "properties": {
+      "recordType": {
+        "type": "string",
+        "enum": [
+          "url",
+          "error"
+        ]
+      },
+      "site": {
+        "type": "string"
+      },
+      "url": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "source": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "sitemap",
+          "llms.txt",
+          null
+        ]
+      },
+      "sourceSitemap": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "lastmod": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "changefreq": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "priority": {
+        "type": [
+          "number",
+          "null"
+        ]
+      },
+      "sitemapKind": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "standard",
+          "news",
+          "image",
+          "video",
+          "text",
+          null
+        ]
+      },
+      "imageCount": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "videoCount": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "hreflangCount": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "changeType": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "added",
+          "unchanged",
+          "removed",
+          null
+        ]
+      },
+      "firstSeenAt": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "httpStatus": {
+        "type": [
+          "integer",
+          "null"
+        ]
+      },
+      "finalUrl": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "errorCode": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "errorMessage": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "extractedAt": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "recordType",
+      "site",
+      "extractedAt"
+    ]
+  },
+  "views": {
+    "urls": {
+      "title": "URLs",
+      "transformation": {
+        "fields": [
+          "url",
+          "lastmod",
+          "changefreq",
+          "priority",
+          "changeType",
+          "httpStatus",
+          "sourceSitemap",
+          "site"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "url": {
+            "format": "link"
+          },
+          "sourceSitemap": {
+            "format": "link"
+          }
+        }
+      }
+    },
+    "errors": {
+      "title": "Errors",
+      "transformation": {
+        "fields": [
+          "recordType",
+          "site",
+          "url",
+          "errorCode",
+          "errorMessage"
+        ]
+      },
+      "display": {
+        "component": "table"
+      }
+    }
+  }
+}

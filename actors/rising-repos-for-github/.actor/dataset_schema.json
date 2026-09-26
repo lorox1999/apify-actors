@@ -1,0 +1,59 @@
+{
+  "actorSpecification": 1,
+  "fields": {
+    "type": "object",
+    "properties": {
+      "recordType": { "type": "string", "enum": ["repo", "error"] },
+      "rank": { "type": ["integer", "null"] },
+      "fullName": { "type": ["string", "null"] },
+      "url": { "type": ["string", "null"] },
+      "repoId": { "type": ["integer", "null"] },
+      "description": { "type": ["string", "null"] },
+      "ownerIsOrganization": { "type": ["boolean", "null"] },
+      "language": { "type": ["string", "null"] },
+      "topics": { "type": ["array", "null"], "items": { "type": "string" } },
+      "licenseSpdx": { "type": ["string", "null"] },
+      "stars": { "type": ["integer", "null"] },
+      "forks": { "type": ["integer", "null"] },
+      "openIssues": { "type": ["integer", "null"] },
+      "createdAt": { "type": ["string", "null"] },
+      "pushedAt": { "type": ["string", "null"] },
+      "ageDays": { "type": ["number", "null"] },
+      "starsPerDay": { "type": ["number", "null"] },
+      "isFork": { "type": ["boolean", "null"] },
+      "isArchived": { "type": ["boolean", "null"] },
+      "isTemplate": { "type": ["boolean", "null"] },
+      "defaultBranch": { "type": ["string", "null"] },
+      "sizeKb": { "type": ["integer", "null"] },
+      "enriched": { "type": "boolean" },
+      "latestReleaseTag": { "type": ["string", "null"] },
+      "latestReleasePublishedAt": { "type": ["string", "null"] },
+      "hasReadme": { "type": ["boolean", "null"] },
+      "readmeSizeBytes": { "type": ["integer", "null"] },
+      "bountyIssueCount": { "type": ["integer", "null"] },
+      "mode": { "type": "string" },
+      "searchQuery": { "type": ["string", "null"] },
+      "errorCode": { "type": ["string", "null"] },
+      "errorMessage": { "type": ["string", "null"] },
+      "fetchedAt": { "type": "string" }
+    },
+    "required": ["recordType", "mode", "enriched", "fetchedAt"]
+  },
+  "views": {
+    "overview": {
+      "title": "Repositories",
+      "transformation": { "fields": ["rank", "fullName", "stars", "starsPerDay", "forks", "language", "topics", "licenseSpdx", "createdAt", "pushedAt", "description", "url"] },
+      "display": { "component": "table", "properties": { "url": { "format": "link" } } }
+    },
+    "enriched": {
+      "title": "Enriched",
+      "transformation": { "fields": ["fullName", "latestReleaseTag", "latestReleasePublishedAt", "hasReadme", "readmeSizeBytes", "bountyIssueCount", "openIssues"] },
+      "display": { "component": "table" }
+    },
+    "errors": {
+      "title": "Errors",
+      "transformation": { "fields": ["recordType", "fullName", "errorCode", "errorMessage"] },
+      "display": { "component": "table" }
+    }
+  }
+}

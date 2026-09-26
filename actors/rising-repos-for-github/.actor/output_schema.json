@@ -1,0 +1,8 @@
+{
+  "actorOutputSchemaVersion": 1,
+  "title": "Rising & Trending Repos Finder output",
+  "properties": {
+    "repos": { "title": "Repositories", "description": "One row per repository (plus error rows).", "template": "{{links.apiDefaultDatasetUrl}}/items?view=overview" },
+    "summary": { "title": "Run summary", "description": "Queries sent, rate-limit status, billed counts.", "template": "{{links.apiDefaultKeyValueStoreUrl}}/records/SUMMARY" }
+  }
+}

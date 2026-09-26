@@ -1,0 +1,18 @@
+{
+  "actorSpecification": 1,
+  "name": "sitemap-url-diff-extractor",
+  "title": "Sitemap URL Extractor with Diff & llms.txt Check",
+  "description": "Sitemap URL extractor for SEO audits, migrations and crawl seeding. Finds sitemaps via robots.txt and common paths, follows sitemap indexes and .gz files, and checks llms.txt. Get URL, lastmod, changefreq and priority, filter by date or regex, and see URLs added or removed since your last run.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "dockerfile": "../Dockerfile",
+  "dockerContextDir": "../..",
+  "input": "./input_schema.json",
+  "storages": {
+    "dataset": "./dataset_schema.json"
+  },
+  "output": "./output_schema.json",
+  "minMemoryMbytes": 512,
+  "maxMemoryMbytes": 4096,
+  "defaultMemoryMbytes": 1024
+}

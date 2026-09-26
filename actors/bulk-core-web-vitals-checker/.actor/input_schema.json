@@ -1,0 +1,147 @@
+{
+  "title": "Bulk Core Web Vitals Checker – Lighthouse Audit",
+  "description": "Run Lighthouse audits on a list of URLs and get Core Web Vitals (LCP, CLS, TBT, FCP), Speed Index and the four Lighthouse category scores for each page.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "urls": {
+      "title": "URLs to audit",
+      "type": "array",
+      "description": "One URL per line (http or https). You can also load URLs from a dataset below, for example the output of a sitemap extractor.",
+      "editor": "stringList",
+      "prefill": [
+        "https://example.com"
+      ],
+      "maxItems": 10000,
+      "items": {
+        "type": "string",
+        "pattern": "^https?://.+",
+        "maxLength": 2048
+      }
+    },
+    "urlsDataset": {
+      "title": "Load URLs from a dataset (optional)",
+      "type": "string",
+      "description": "Pick one of your datasets. The Actor gets read-only access to this dataset only.",
+      "resourceType": "dataset",
+      "resourcePermissions": [
+        "READ"
+      ],
+      "editor": "resourcePicker"
+    },
+    "urlsDatasetField": {
+      "title": "URL field in the dataset",
+      "type": "string",
+      "description": "Name of the field that holds the URL.",
+      "editor": "textfield",
+      "default": "url"
+    },
+    "maxUrls": {
+      "title": "Max URLs per run",
+      "type": "integer",
+      "description": "Cost cap. Each URL x device is one billed audit.",
+      "default": 500,
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "strategy": {
+      "title": "Device",
+      "type": "string",
+      "description": "mobile uses Lighthouse's default mobile emulation and throttling; desktop uses the desktop preset. both = two audits (and two charges) per URL.",
+      "editor": "select",
+      "enum": [
+        "mobile",
+        "desktop",
+        "both"
+      ],
+      "enumTitles": [
+        "Mobile",
+        "Desktop",
+        "Mobile + desktop"
+      ],
+      "default": "mobile",
+      "prefill": "mobile"
+    },
+    "categories": {
+      "title": "Lighthouse categories",
+      "type": "array",
+      "description": "Categories to score. Core Web Vitals come from the performance category.",
+      "editor": "select",
+      "items": {
+        "type": "string",
+        "enum": [
+          "performance",
+          "accessibility",
+          "best-practices",
+          "seo"
+        ],
+        "enumTitles": [
+          "Performance",
+          "Accessibility",
+          "Best practices",
+          "SEO"
+        ]
+      },
+      "default": [
+        "performance",
+        "accessibility",
+        "best-practices",
+        "seo"
+      ]
+    },
+    "maxOpportunities": {
+      "title": "Top improvement suggestions per page",
+      "type": "integer",
+      "description": "How many Lighthouse opportunities (sorted by estimated savings) to include.",
+      "default": 5,
+      "minimum": 0,
+      "maximum": 20
+    },
+    "engine": {
+      "title": "Audit engine",
+      "type": "string",
+      "description": "local = Lighthouse runs inside this Actor (no key needed, billed as url-audited-local). psi = use your own PageSpeed Insights API key (cheaper, includes Chrome UX Report field data when available, billed as url-audited).",
+      "editor": "select",
+      "enum": [
+        "local",
+        "psi"
+      ],
+      "enumTitles": [
+        "Local Lighthouse (no API key)",
+        "PageSpeed Insights API (your own key)"
+      ],
+      "default": "local",
+      "sectionCaption": "Engine and API key"
+    },
+    "psiApiKey": {
+      "title": "Your PageSpeed Insights API key",
+      "type": "string",
+      "description": "Only used when engine = psi. Stored encrypted, never logged, never written to output, used only for this run's requests to Google.",
+      "editor": "textfield",
+      "isSecret": true
+    },
+    "perUrlTimeoutSecs": {
+      "title": "Timeout per audit (seconds)",
+      "type": "integer",
+      "description": "Audits that take longer are recorded as TIMEOUT and not billed.",
+      "default": 60,
+      "minimum": 20,
+      "maximum": 180,
+      "sectionCaption": "Advanced"
+    },
+    "retries": {
+      "title": "Retries per failed audit",
+      "type": "integer",
+      "default": 1,
+      "minimum": 0,
+      "maximum": 2,
+      "description": "How many times to retry an audit that failed for a temporary reason (timeout, Chrome crash)."
+    },
+    "precheckReachability": {
+      "title": "Pre-check that URLs respond",
+      "type": "boolean",
+      "description": "Send a quick HTTP request before launching Lighthouse; unreachable URLs are skipped (not billed) with an error code.",
+      "default": true
+    }
+  }
+}

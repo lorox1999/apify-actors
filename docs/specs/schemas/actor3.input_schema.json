@@ -1,0 +1,164 @@
+{
+  "title": "Rising & Trending Repos Finder for GitHub",
+  "description": "Find rising and trending repositories, search repositories, or look up a list of repositories using the official GitHub REST API. Repository data only. Unofficial tool, not affiliated with GitHub.",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "mode": {
+      "title": "Mode",
+      "type": "string",
+      "description": "rising = new repositories that gained the most stars (approximates trending with the official Search API). search = keyword / qualifier search. repos = look up a list of repositories.",
+      "editor": "select",
+      "enum": [
+        "rising",
+        "search",
+        "repos"
+      ],
+      "enumTitles": [
+        "Rising repos (new and gaining stars)",
+        "Search repositories",
+        "Look up a list of repositories"
+      ],
+      "default": "rising",
+      "prefill": "rising"
+    },
+    "createdWithinDays": {
+      "title": "Created within the last N days (rising mode)",
+      "type": "integer",
+      "default": 7,
+      "prefill": 7,
+      "minimum": 1,
+      "maximum": 365,
+      "sectionCaption": "Rising repos",
+      "description": "Rising mode looks for repositories created in this window, sorted by stars."
+    },
+    "minStars": {
+      "title": "Minimum stars",
+      "type": "integer",
+      "description": "Used in rising and search modes.",
+      "default": 10,
+      "minimum": 0
+    },
+    "maxStars": {
+      "title": "Maximum stars (search mode)",
+      "type": "integer",
+      "minimum": 0,
+      "description": "Upper star limit in search mode. Leave empty for no limit."
+    },
+    "language": {
+      "title": "Programming language",
+      "type": "string",
+      "description": "GitHub language name, for example Python, TypeScript, Rust. Leave empty for all languages.",
+      "editor": "textfield"
+    },
+    "topics": {
+      "title": "Topics",
+      "type": "array",
+      "description": "Repository topics, for example llm, game-engine. All listed topics must match.",
+      "editor": "stringList",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{0,49}$"
+      }
+    },
+    "query": {
+      "title": "Keywords (search mode)",
+      "type": "string",
+      "description": "Free-text keywords searched in repository name, description and topics. GitHub search qualifiers are allowed except user: (to avoid building per-person lists); use org: for organizations.",
+      "editor": "textfield",
+      "sectionCaption": "Search repositories"
+    },
+    "createdAfter": {
+      "title": "Created on or after (search mode)",
+      "type": "string",
+      "editor": "datepicker",
+      "dateType": "absoluteOrRelative",
+      "description": "Only repositories created on or after this date. Absolute (2026-01-01) or relative (30 days)."
+    },
+    "pushedAfter": {
+      "title": "Last pushed on or after (search mode)",
+      "type": "string",
+      "editor": "datepicker",
+      "dateType": "absoluteOrRelative",
+      "description": "Only repositories with a push on or after this date, to skip inactive projects."
+    },
+    "sort": {
+      "title": "Sort by",
+      "type": "string",
+      "editor": "select",
+      "enum": [
+        "stars",
+        "forks",
+        "updated",
+        "best-match"
+      ],
+      "default": "stars",
+      "description": "Sort order for rising and search modes. best-match uses GitHub relevance."
+    },
+    "includeForks": {
+      "title": "Include forks",
+      "type": "boolean",
+      "default": false,
+      "description": "Include forked repositories in search results."
+    },
+    "includeArchived": {
+      "title": "Include archived repositories",
+      "type": "boolean",
+      "default": false,
+      "description": "Include archived (read-only) repositories."
+    },
+    "repositories": {
+      "title": "Repositories (repos mode)",
+      "type": "array",
+      "description": "One per line: owner/name or https://github.com/owner/name.",
+      "editor": "stringList",
+      "maxItems": 5000,
+      "items": {
+        "type": "string",
+        "pattern": "^(https://github\\.com/)?[A-Za-z0-9-]{1,39}/[A-Za-z0-9._-]{1,100}/?$"
+      },
+      "sectionCaption": "Look up repositories"
+    },
+    "maxRepos": {
+      "title": "Max repositories",
+      "type": "integer",
+      "description": "Cost cap. Each repository row is one billed repo event. The GitHub Search API returns at most 1,000 results per query.",
+      "default": 100,
+      "prefill": 20,
+      "minimum": 1,
+      "maximum": 5000,
+      "sectionCaption": "Output"
+    },
+    "enrich": {
+      "title": "Add enriched fields (requires your token)",
+      "type": "boolean",
+      "description": "Adds latest release, README presence/size and count of open issues with bounty labels. Needs a GitHub token. Billed as repo-enriched per repository.",
+      "default": false
+    },
+    "bountyLabels": {
+      "title": "Bounty labels to count (enriched)",
+      "type": "array",
+      "editor": "stringList",
+      "default": [
+        "bounty",
+        "💎 Bounty",
+        "algora",
+        "paid",
+        "reward"
+      ],
+      "items": {
+        "type": "string",
+        "maxLength": 50
+      },
+      "description": "Open issues carrying any of these labels are counted in bountyIssueCount (case-insensitive). Only counts are returned, never issue titles or authors."
+    },
+    "githubToken": {
+      "title": "Your GitHub token (optional)",
+      "type": "string",
+      "description": "Fine-grained personal access token with read-only access to public repositories. Raises GitHub rate limits and is required for enriched fields. Stored encrypted, never logged or shared, used only for this run's API calls.",
+      "editor": "textfield",
+      "isSecret": true,
+      "sectionCaption": "Authentication"
+    }
+  }
+}
